@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARCADE ZONE - Retro Gaming Paradise</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS VARIABLES - COLOR SYSTEM ===== */
+        :root {
+            --bg-dark: #0a0a1a;
+            --neon-cyan: #00f5ff;
+            --neon-magenta: #ff00cc;
+            --neon-yellow: #ffe600;
+            --neon-orange: #ff6600;
+            --text-primary: #00f5ff;
+            --text-secondary: #ffe600;
+            --scanline-color: rgba(0, 0, 0, 0.15);
+            --glow-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+            --glow-shadow-mag: 0 0 10px var(--neon-magenta), 0 0 20px var(--neon-magenta), 0 0 30px var(--neon-magenta);
+            --glow-shadow-yellow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow), 0 0 30px var(--neon-yellow);
+        }
+
+        /* ===== RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--neon-cyan);
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ===== SCANLINE OVERLAY ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--scanline-color),
+                var(--scanline-color) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            animation: flicker 0.15s infinite;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.97; }
+        }
+
+        @keyframes blink {
+            0%, 49%, 100% { opacity: 1; }
+            50%, 99% { opacity: 0; }
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { text-shadow: var(--glow-shadow), 0 0 5px var(--neon-cyan); }
+            50% { text-shadow: var(--glow-shadow), 0 0 15px var(--neon-cyan), 0 0 25px var(--neon-cyan); }
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        @keyframes starfield {
+            0% { background-position: 0 0; }
+            100% { background-position: 100px 100px; }
+        }
+
+        @keyframes neon-flash {
+            0%, 100% { text-shadow: var(--glow-shadow-mag), 0 0 10px var(--neon-magenta); }
+            50% { text-shadow: var(--glow-shadow-mag), 0 0 30px var(--neon-magenta), 0 0 50px var(--neon-magenta); }
+        }
+
+        @keyframes coin-spin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        @keyframes secret-unlock {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
+            border-bottom: 3px solid var(--neon-cyan);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px var(--neon-cyan);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 24px;
+            color: var(--neon-magenta);
+            text-shadow: var(--glow-shadow-mag), 0 0 20px var(--neon-magenta);
+            animation: glow-pulse 2s ease-in-out infinite;
+            letter-spacing: 2px;
+            flex: 0 0 auto;
+        }
+
+        .marquee-container {
+            flex: 1;
+            margin: 0 30px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 5px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+        }
+
+        .marquee-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: var(--neon-yellow);
+            white-space: nowrap;
+            animation: marquee 15s linear infinite;
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex: 0 0 auto;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .live-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--neon-yellow);
+            border-radius: 50%;
+            animation: blink 1s ease-in-out infinite;
+            box-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .coin-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: var(--neon-orange);
+            text-shadow: 0 0 10px var(--neon-orange);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border: 2px solid var(--neon-orange);
+            border-radius: 5px;
+        }
+
+        .coin-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: var(--neon-orange);
+            border-radius: 50%;
+            animation: coin-spin 1s linear infinite;
+        }
+
+        .sound-toggle {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: none;
+            box-shadow: 0 0 15px var(--neon-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .sound-toggle:hover {
+            box-shadow: 0 0 25px var(--neon-cyan), 0 0 35px var(--neon-magenta);
+            transform: scale(1.05);
+        }
+
+        .sound-toggle.muted {
+            background: linear-gradient(135deg, #666, #333);
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+            gap: 15px;
+            padding: 15px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, rgba(10, 10, 26, 0.9), rgba(26, 10, 46, 0.9));
+            border: 3px solid var(--neon-magenta);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            box-shadow: 0 0 20px var(--neon-magenta);
+        }
+
+        .sidebar-header {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: var(--neon-magenta);
+            text-shadow: var(--glow-shadow-mag);
+            border-bottom: 3px dashed var(--neon-magenta);
+            padding-bottom: 10px;
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        .game-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .game-item {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 5px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 5px var(--neon-cyan);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 245, 255, 0.03) 2px,
+                rgba(0, 245, 255, 0.03) 4px
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-item:hover {
+            border-color: var(--neon-yellow);
+            background: rgba(255, 230, 0, 0.1);
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+            box-shadow: 0 0 15px var(--neon-yellow);
+        }
+
+        .game-item:hover::before {
+            opacity: 1;
+        }
+
+        .game-item.active {
+            border-color: var(--neon-yellow);
+            background: rgba(255, 230, 0, 0.2);
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
+            box-shadow: 0 0 20px var(--neon-yellow);
+        }
+
+        .game-item-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .game-item-name {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .game-item-tagline {
+            font-family: 'VT323', monospace;
+            font-size: 8px;
+            color: var(--neon-cyan);
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .game-item.active .game-item-tagline::before {
+            content: '► ';
+            color: var(--neon-yellow);
+            animation: blink 0.8s ease-in-out infinite;
+        }
+
+        .hall-of-fame {
+            border-top: 3px dashed var(--neon-magenta);
+            padding-top: 15px;
+        }
+
+        .hall-header {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: var(--neon-magenta);
+            text-shadow: var(--glow-shadow-mag);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .score-item {
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 3px solid var(--neon-orange);
+            padding: 8px;
+            margin-bottom: 8px;
+            font-family: 'VT323', monospace;
+            font-size: 10px;
+            color: var(--neon-orange);
+            text-shadow: 0 0 5px var(--neon-orange);
+        }
+
+        .score-game {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-rank {
+            width: 20px;
+            color: var(--neon-magenta);
+        }
+
+        .score-value {
+            flex: 1;
+            text-align: right;
+            color: var(--neon-yellow);
+        }
+
+        .secret-game {
+            animation: secret-unlock 0.5s ease-out;
+            border-color: var(--neon-magenta) !important;
+            background: rgba(255, 0, 204, 0.1) !important;
+            color: var(--neon-magenta) !important;
+            text-shadow: 0 0 15px var(--neon-magenta) !important;
+        }
+
+        /* ===== MAIN AREA ===== */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .game-info-bar {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 0, 204, 0.1));
+            border: 2px solid var(--neon-cyan);
+            border-radius: 5px;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .info-title {
+            color: var(--neon-magenta);
+            text-shadow: var(--glow-shadow-mag);
+        }
+
+        .info-stats {
+            display: flex;
+            gap: 40px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lives-display {
+            letter-spacing: 3px;
+        }
+
+        .crt-screen {
+            flex: 1;
+            background: linear-gradient(135deg, #1a0a2e 0%, #0f0f1e 100%);
+            border: 8px solid;
+            border-color: #333 #000 #000 #444;
+            border-radius: 30px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 30px var(--neon-cyan), 0 0 50px var(--neon-cyan);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .crt-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .game-frame {
+            flex: 1;
+            background: #000;
+            border: 2px solid var(--neon-cyan);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        .game-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        .game-controls {
+            margin-top: 15px;
+            font-family: 'VT323', monospace;
+            font-size: 11px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 5px var(--neon-cyan);
+            line-height: 1.6;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid var(--neon-cyan);
+        }
+
+        /* INSERT COIN SPLASH */
+        .insert-coin {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .arcade-cabinet {
+            font-size: 80px;
+            animation: glow-pulse 1.5s ease-in-out infinite;
+        }
+
+        .insert-coin-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 32px;
+            color: var(--neon-magenta);
+            text-shadow: var(--glow-shadow-mag), 0 0 30px var(--neon-magenta);
+            animation: neon-flash 1s ease-in-out infinite;
+            letter-spacing: 3px;
+        }
+
+        .insert-coin-subtext {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
+            border-top: 3px solid var(--neon-cyan);
+            padding: 12px 20px;
+            text-align: center;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 5px var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .footer-text {
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 16px;
+            background: var(--neon-cyan);
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 150px;
+            }
+
+            .marquee-container {
+                display: none;
+            }
+
+            .logo {
+                font-size: 16px;
+            }
+
+            .header-right {
+                gap: 10px;
+            }
+
+            .coin-display {
+                font-size: 10px;
+                padding: 5px 10px;
+            }
+
+            .live-indicator {
+                font-size: 10px;
+            }
+
+            .info-stats {
+                gap: 20px;
+                font-size: 10px;
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="logo">█▀▀ ARCADE</div>
+        <div class="marquee-container">
+            <div class="marquee-text">
+                WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★ HIGH SCORES UPDATED DAILY ★ WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>LIVE</span>
+            </div>
+            <div class="coin-display">
+                <span class="coin-icon"></span>
+                <span id="coin-count">99</span>
+            </div>
+            <button class="sound-toggle" id="sound-toggle">🔊 ON</button>
+        </div>
+    </header>
+
+    <!-- ===== MAIN CONTAINER ===== -->
+    <div class="container">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-header">SELECT GAME</div>
+
+            <div class="game-menu" id="game-menu">
+                <div class="game-item" data-game="pacman" data-tagline="Eat dots. Dodge ghosts.">
+                    <span class="game-item-icon">🟡</span>
+                    <span class="game-item-name">PAC-MAN</span>
+                    <span class="game-item-tagline">Eat dots. Dodge ghosts.</span>
+                </div>
+                <div class="game-item" data-game="flappy" data-tagline="Flap through the pipes.">
+                    <span class="game-item-icon">🐦</span>
+                    <span class="game-item-name">FLAPPY BIRD</span>
+                    <span class="game-item-tagline">Flap through the pipes.</span>
+                </div>
+                <div class="game-item" data-game="arkanoid" data-tagline="Bounce, crash, destroy!">
+                    <span class="game-item-icon">🧱</span>
+                    <span class="game-item-name">ARKANOID</span>
+                    <span class="game-item-tagline">Bounce, crash, destroy!</span>
+                </div>
+                <div class="game-item" data-game="checkers" data-tagline="King me, baby.">
+                    <span class="game-item-icon">♟️</span>
+                    <span class="game-item-name">CHECKERS</span>
+                    <span class="game-item-tagline">King me, baby.</span>
+                </div>
+                <div class="game-item" data-game="poker" data-tagline="All in, all night.">
+                    <span class="game-item-icon">🃏</span>
+                    <span class="game-item-name">POKER</span>
+                    <span class="game-item-tagline">All in, all night.</span>
+                </div>
+            </div>
+
+            <div class="hall-of-fame">
+                <div class="hall-header">HALL OF FAME</div>
+                <div id="hall-of-fame-content"></div>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN AREA ===== -->
+        <main class="main-area">
+            <!-- Game Info Bar -->
+            <div class="game-info-bar">
+                <div class="info-title" id="game-title">ARCADE ZONE</div>
+                <div class="info-stats">
+                    <div class="stat-item">
+                        <span>HIGH SCORE:</span>
+                        <span id="high-score">000000</span>
+                    </div>
+                    <div class="stat-item lives-display">
+                        <span>LIVES:</span>
+                        <span id="lives">♥♥♥</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRT Screen -->
+            <div class="crt-screen">
+                <div class="game-frame" id="game-frame">
+                    <div class="insert-coin">
+                        <div class="arcade-cabinet">🕹️</div>
+                        <div class="insert-coin-text">INSERT COIN</div>
+                        <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
+                    </div>
+                </div>
+                <div class="game-controls" id="controls-text">
+                    ► Use Arrow Keys or Mouse to Play<br>
+                    ► ESC to Return to Menu<br>
+                    ► Konami Code: ↑↑↓↓←→←→BA
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="footer-text">
+            © ARCADE ZONE — ALL RIGHTS RESERVED — PLAY RESPONSIBLY <span class="cursor"></span>
+        </div>
+    </footer>
+
+    <!-- ===== BACKGROUND MUSIC ===== -->
+    <audio id="bg-music" loop>
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+
+    <script>
+        // ===== STATE & CONFIG =====
+        const GAMES = {
+            pacman: {
+                name: 'PAC-MAN',
+                url: 'https://ypx.github.io/pacman/',
+                controls: '► Arrow Keys to Move\n► Eat Dots and Power Pellets\n► Avoid Ghosts'
+            },
+            flappy: {
+                name: 'FLAPPY BIRD',
+                url: 'https://wayou.github.io/flappybird/',
+                controls: '► CLICK or SPACE to Flap\n► Avoid Pipes\n► Survive as Long as Possible'
+            },
+            arkanoid: {
+                name: 'ARKANOID',
+                url: 'https://bencentaur.github.io/breakout-game/',
+                controls: '► Arrow Keys or Mouse to Move Paddle\n► Bounce Ball to Destroy Bricks\n► Don\'t Let Ball Fall'
+            },
+            checkers: {
+                name: 'CHECKERS',
+                url: 'https://www.gamesforthebrain.com/game/checkers/',
+                controls: '► CLICK to Select Piece\n► CLICK to Move\n► Jump Opponent Pieces to Capture\n► Reach Back Row to Crown'
+            },
+            poker: {
+                name: 'POKER',
+                url: 'https://www.gamesforthebrain.com/game/poker/',
+                controls: '► BET, CALL, FOLD\n► Strategy is Key\n► Beat the Dealer\n► Bluff Wisely'
+            }
+        };
+
+        let currentGame = null;
+        let soundEnabled = true;
+        let scores = {};
+        let konamiCode = [];
+        let secretUnlocked = false;
+
+        // ===== SOUND SYSTEM =====
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playCoinSound() {
+            if (!soundEnabled) return;
+            const time = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.frequency.setValueAtTime(600, time);
+            osc.frequency.setValueAtTime(900, time + 0.1);
+            gain.gain.setValueAtTime(0.3, time);
+            gain.gain.setValueAtTime(0, time + 0.1);
+            
+            osc.start(time);
+            osc.stop(time + 0.1);
+        }
+
+        function playSelectSound() {
+            if (!soundEnabled) return;
+            const time = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.frequency.setValueAtTime(400, time);
+            osc.frequency.setValueAtTime(500, time + 0.05);
+            osc.frequency.setValueAtTime(600, time + 0.1);
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.setValueAtTime(0, time + 0.15);
+            
+            osc.start(time);
+            osc.stop(time + 0.15);
+        }
+
+        function playSecretSound() {
+            if (!soundEnabled) return;
+            const time = audioContext.currentTime;
+            for (let i = 0; i < 4; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                const freq = 800 + (i * 300);
+                const startTime = time + (i * 0.15);
+                
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.2, startTime);
+                gain.gain.setValueAtTime(0, startTime + 0.1);
+                
+                osc.start(startTime);
+                osc.stop(startTime + 0.1);
+            }
+        }
+
+        // ===== SCORE MANAGEMENT =====
+        function loadScores() {
+            const saved = localStorage.getItem('arcadeScores');
+            scores = saved ? JSON.parse(saved) : {};
+            for (const game in GAMES) {
+                if (!scores[game]) {
+                    scores[game] = [];
+                }
+            }
+        }
+
+        function saveScores() {
+            localStorage.setItem('arcadeScores', JSON.stringify(scores));
+        }
+
+        function addScore(game, score, initials = 'AAA') {
+            if (!scores[game]) scores[game] = [];
+            scores[game].push({ score, initials });
+            scores[game].sort((a, b) => b.score - a.score);
+            scores[game] = scores[game].slice(0, 3);
+            saveScores();
+            updateHallOfFame();
+        }
+
+        function updateHallOfFame() {
+            const container = document.getElementById('hall-of-fame-content');
+            container.innerHTML = '';
+            
+            for (const game in GAMES) {
+                if (scores[game] && scores[game].length > 0) {
+                    const gameScores = scores[game];
+                    let html = `<div class="score-item">
+                        <div class="score-game">${GAMES[game].name}</div>`;
+                    
+                    gameScores.forEach((entry, idx) => {
+                        html += `<div class="score-entry">
+                            <span class="score-rank">#${idx + 1}</span>
+                            <span>${entry.initials}</span>
+                            <span class="score-value">${String(entry.score).padStart(6, '0')}</span>
+                        </div>`;
+                    });
+                    
+                    html += `</div>`;
+                    container.innerHTML += html;
+                }
+            }
+        }
+
+        // ===== GAME SELECTION =====
+        function selectGame(gameKey) {
+            if (gameKey === 'secret' && !secretUnlocked) return;
+            
+            // Remove active from all items
+            document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
+            
+            // Add active to selected item
+            const selectedItem = document.querySelector(`[data-game="${gameKey}"]`);
+            if (selectedItem) selectedItem.classList.add('active');
+            
+            currentGame = gameKey;
+            playSelectSound();
+            loadGame(gameKey);
+        }
+
+        function loadGame(gameKey) {
+            const gameFrame = document.getElementById('game-frame');
+            const game = GAMES[gameKey];
+            
+            if (!game) return;
+            
+            // Update info bar
+            document.getElementById('game-title').textContent = game.name;
+            document.getElementById('controls-text').textContent = game.controls;
+            
+            // Load game
+            gameFrame.innerHTML = `<iframe src="${game.url}" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
+        }
+
+        // ===== KONAMI CODE ===== 
+        const KONAMI_SEQUENCE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.key === ' ' ? ' ' : e.key.toLowerCase() === 'enter' ? 'Enter' : e.key);
+            konamiCode = konamiCode.slice(-10);
+            
+            const sequence = konamiCode.map(k => 
+                k === 'ArrowUp' ? 'ArrowUp' :
+                k === 'ArrowDown' ? 'ArrowDown' :
+                k === 'ArrowLeft' ? 'ArrowLeft' :
+                k === 'ArrowRight' ? 'ArrowRight' :
+                k.toLowerCase()
+            );
+            
+            if (sequence.join(',') === KONAMI_SEQUENCE.join(',')) {
+                unlockSecret();
+            }
+        });
+
+        function unlockSecret() {
+            if (secretUnlocked) return;
+            secretUnlocked = true;
+            playSecretSound();
+            
+            // Add secret game to menu
+            const menu = document.getElementById('game-menu');
+            const secretItem = document.createElement('div');
+            secretItem.className = 'game-item secret-game';
+            secretItem.setAttribute('data-game', 'secret');
+            secretItem.innerHTML = `
+                <span class="game-item-icon">🌟</span>
+                <span class="game-item-name">SPACE INVADERS</span>
+                <span class="game-item-tagline">Defend Earth!</span>
+            `;
+            
+            secretItem.addEventListener('click', () => selectGame('secret'));
+            menu.appendChild(secretItem);
+            
+            // Add secret game to GAMES object
+            GAMES.secret = {
+                name: 'SPACE INVADERS',
+                url: 'https://spaceinvaders.io/',
+                controls: '► Arrow Keys to Move\n► SPACE to Shoot\n► Destroy Alien Invaders'
+            };
+        }
+
+        // ===== SOUND TOGGLE =====
+        document.getElementById('sound-toggle').addEventListener('click', (e) => {
+            soundEnabled = !soundEnabled;
+            e.target.textContent = soundEnabled ? '🔊 ON' : '🔇 OFF';
+            e.target.classList.toggle('muted');
+        });
+
+        // ===== GAME MENU EVENT LISTENERS =====
+        document.querySelectorAll('.game-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const gameKey = item.getAttribute('data-game');
+                selectGame(gameKey);
+            });
+        });
+
+        // ===== INITIALIZE =====
+        loadScores();
+        updateHallOfFame();
+
+        // Add some demo scores
+        if (Object.keys(scores).every(game => scores[game].length === 0)) {
+            addScore('pacman', 42500, 'AAA');
+            addScore('pacman', 38200, 'BBB');
+            addScore('flappy', 87, 'TOP');
+            addScore('arkanoid', 15600, 'PRO');
+        }
+
+        // ===== EASTER EGGS & INTERACTIONS =====
+        document.querySelector('.arcade-cabinet').addEventListener('click', () => {
+            playSelectSound();
+            document.querySelector('.arcade-cabinet').style.animation = 'none';
+            setTimeout(() => {
+                document.querySelector('.arcade-cabinet').style.animation = '';
+            }, 10);
+        });
+
+        // Click anywhere on INSERT COIN screen to prompt game selection
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentGame) {
+                currentGame = null;
+                document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
+                document.getElementById('game-frame').innerHTML = `
+                    <div class="insert-coin">
+                        <div class="arcade-cabinet">🕹️</div>
+                        <div class="insert-coin-text">INSERT COIN</div>
+                        <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
+                    </div>
+                `;
+                document.getElementById('game-title').textContent = 'ARCADE ZONE';
+                document.getElementById('controls-text').textContent = '► Use Arrow Keys or Mouse to Play\n► ESC to Return to Menu\n► Konami Code: ↑↑↓↓←→←→BA';
+            }
+        });
+    </script>
+</body>
+</html>

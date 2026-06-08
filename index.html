@@ -1107,7 +1107,7 @@
             const ctx=canvas.getContext('2d');
             const COLS=10,ROWS=6,BW=48,BH=18,GAP=4,BOFF_X=14,BOFF_Y=50;
             const COLORS=['#ff0055','#ff6600','#ffcc00','#00ff88','#00ccff','#cc44ff'];
-            let paddle={x:W/2-50,y:H-30,w:100,h=12,speed:7};
+            let paddle={x:W/2-50,y:H-30,w:100,h:12,speed:7};
             let ball={x:W/2,y:H-50,vx:4,vy:-4,r:8,active:false};
             let bricks=[],score=0,lives=3,gameOver=false,won=false;
             let keys={};

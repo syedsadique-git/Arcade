@@ -717,28 +717,28 @@
         const GAMES = {
             pacman: {
                 name: 'PAC-MAN',
-                url: 'https://ypx.github.io/pacman/',
-                controls: '► Arrow Keys to Move\n► Eat Dots and Power Pellets\n► Avoid Ghosts'
+                url: 'https://freepacman.org/',
+                controls: '► Arrow Keys to Move ► Eat Dots and Power Pellets ► Avoid Ghosts'
             },
             flappy: {
                 name: 'FLAPPY BIRD',
-                url: 'https://wayou.github.io/flappybird/',
-                controls: '► CLICK or SPACE to Flap\n► Avoid Pipes\n► Survive as Long as Possible'
+                url: 'https://flappybird.io/',
+                controls: '► CLICK or SPACE to Flap ► Avoid Pipes ► Survive as Long as Possible'
             },
             arkanoid: {
                 name: 'ARKANOID',
-                url: 'https://bencentaur.github.io/breakout-game/',
-                controls: '► Arrow Keys or Mouse to Move Paddle\n► Bounce Ball to Destroy Bricks\n► Don\'t Let Ball Fall'
+                url: 'https://www.crazygames.com/embed/brick-out',
+                controls: '► Arrow Keys or Mouse to Move Paddle ► Bounce Ball to Destroy Bricks ► Don\'t Let Ball Fall'
             },
             checkers: {
                 name: 'CHECKERS',
-                url: 'https://www.gamesforthebrain.com/game/checkers/',
-                controls: '► CLICK to Select Piece\n► CLICK to Move\n► Jump Opponent Pieces to Capture\n► Reach Back Row to Crown'
+                url: 'https://www.crazygames.com/embed/checkers-legend',
+                controls: '► CLICK to Select Piece ► CLICK to Move ► Jump Opponent Pieces to Capture ► Reach Back Row to Crown'
             },
             poker: {
                 name: 'POKER',
-                url: 'https://www.gamesforthebrain.com/game/poker/',
-                controls: '► BET, CALL, FOLD\n► Strategy is Key\n► Beat the Dealer\n► Bluff Wisely'
+                url: 'https://www.crazygames.com/embed/governor-of-poker-3',
+                controls: '► BET, CALL, FOLD ► Strategy is Key ► Beat the Dealer ► Bluff Wisely'
             }
         };
 
@@ -882,7 +882,7 @@
             document.getElementById('controls-text').textContent = game.controls;
             
             // Load game
-            gameFrame.innerHTML = `<iframe src="${game.url}" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
+            gameFrame.innerHTML = `<iframe src="${game.url}" allow="fullscreen; autoplay" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"></iframe>`;
         }
 
         // ===== KONAMI CODE ===== 
@@ -927,8 +927,8 @@
             // Add secret game to GAMES object
             GAMES.secret = {
                 name: 'SPACE INVADERS',
-                url: 'https://spaceinvaders.io/',
-                controls: '► Arrow Keys to Move\n► SPACE to Shoot\n► Destroy Alien Invaders'
+                url: 'https://www.crazygames.com/embed/space-invaders',
+                controls: '► Arrow Keys to Move ► SPACE to Shoot ► Destroy Alien Invaders'
             };
         }
 

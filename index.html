@@ -861,21 +861,26 @@
             document.getElementById('game-title').textContent = game.name;
             document.getElementById('controls-text').textContent = game.controls;
             gameFrame.innerHTML = '';
-            if (gameKey === 'pacman')   startPacman(gameFrame);
-            else if (gameKey === 'flappy')   startFlappy(gameFrame);
-            else if (gameKey === 'arkanoid') startArkanoid(gameFrame);
-            else if (gameKey === 'checkers') startCheckers(gameFrame);
-            else if (gameKey === 'poker')    startPoker(gameFrame);
-            else if (gameKey === 'secret')   startSecret(gameFrame);
+            // Get actual container dimensions
+            const W = gameFrame.clientWidth  || gameFrame.offsetWidth  || 800;
+            const H = gameFrame.clientHeight || gameFrame.offsetHeight || 520;
+            if (gameKey === 'pacman')        startPacman(gameFrame, W, H);
+            else if (gameKey === 'flappy')   startFlappy(gameFrame, W, H);
+            else if (gameKey === 'arkanoid') startArkanoid(gameFrame, W, H);
+            else if (gameKey === 'checkers') startCheckers(gameFrame, W, H);
+            else if (gameKey === 'poker')    startPoker(gameFrame, W, H);
+            else if (gameKey === 'secret')   startSecret(gameFrame, W, H);
         }
 
         /* =====================================================================
            PAC-MAN
         ===================================================================== */
-        function startPacman(container) {
-            const W=560,H=560,CELL=28,COLS=20,ROWS=20;
+        function startPacman(container, W, H) {
+            const COLS=20,ROWS=20,CELL=Math.floor(Math.min(W/COLS,H/ROWS));
+            const CW=COLS*CELL, CH=ROWS*CELL;
             const canvas=document.createElement('canvas');
-            canvas.width=W; canvas.height=H; canvas.style.cssText='display:block;margin:auto;background:#000;cursor:none;';
+            canvas.width=CW; canvas.height=CH;
+            canvas.style.cssText='display:block;width:100%;height:100%;object-fit:contain;background:#000;cursor:none;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
@@ -998,22 +1003,22 @@
                 if(!grid.flat().some(v=>v===2||v===3))won=true;
             }
             function draw(){
-                ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+                ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
                 drawMap();drawPac();drawGhosts();
                 if(gameOver){
-                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-                    ctx.fillStyle='#ff0000';ctx.font='bold 36px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.fillText('GAME OVER',W/2,H/2-20);
-                    ctx.fillStyle='#fff';ctx.font='18px "Press Start 2P",monospace';
-                    ctx.fillText('SCORE: '+score,W/2,H/2+30);
-                    ctx.fillText('Click to Restart',W/2,H/2+70);
+                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#ff0000';ctx.font=`bold ${CELL*1.3}px "Press Start 2P",monospace`;
+                    ctx.textAlign='center';ctx.fillText('GAME OVER',CW/2,CH/2-20);
+                    ctx.fillStyle='#fff';ctx.font=`${CELL*0.65}px "Press Start 2P",monospace`;
+                    ctx.fillText('SCORE: '+score,CW/2,CH/2+30);
+                    ctx.fillText('Click to Restart',CW/2,CH/2+70);
                 }
                 if(won){
-                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-                    ctx.fillStyle='#ffff00';ctx.font='bold 32px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.fillText('YOU WIN!',W/2,H/2-20);
-                    ctx.fillStyle='#fff';ctx.font='18px "Press Start 2P",monospace';
-                    ctx.fillText('SCORE: '+score,W/2,H/2+30);
+                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#ffff00';ctx.font=`bold ${CELL*1.2}px "Press Start 2P",monospace`;
+                    ctx.textAlign='center';ctx.fillText('YOU WIN!',CW/2,CH/2-20);
+                    ctx.fillStyle='#fff';ctx.font=`${CELL*0.65}px "Press Start 2P",monospace`;
+                    ctx.fillText('SCORE: '+score,CW/2,CH/2+30);
                 }
             }
             function loop(ts){draw();update(ts);requestAnimationFrame(loop);}
@@ -1031,10 +1036,10 @@
         /* =====================================================================
            FLAPPY BIRD
         ===================================================================== */
-        function startFlappy(container) {
-            const W=400,H=550;
+        function startFlappy(container, W, H) {
             const canvas=document.createElement('canvas');
-            canvas.width=W;canvas.height=H;canvas.style.cssText='display:block;margin:auto;background:#70c5ce;cursor:pointer;';
+            canvas.width=W;canvas.height=H;
+            canvas.style.cssText='display:block;width:100%;height:100%;background:#70c5ce;cursor:pointer;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
             let bird={x:80,y:220,vy:0},pipes=[],score=0,best=0,state='idle',frame=0,gap=160,pipeW=60;
@@ -1102,10 +1107,10 @@
         /* =====================================================================
            ARKANOID / BREAKOUT
         ===================================================================== */
-        function startArkanoid(container) {
-            const W=560,H=520;
+        function startArkanoid(container, W, H) {
             const canvas=document.createElement('canvas');
-            canvas.width=W;canvas.height=H;canvas.style.cssText='display:block;margin:auto;background:#0a0a1a;cursor:none;';
+            canvas.width=W;canvas.height=H;
+            canvas.style.cssText='display:block;width:100%;height:100%;background:#0a0a1a;cursor:none;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
             const COLS=10,ROWS=6,BW=48,BH=18,GAP=4,BOFF_X=14,BOFF_Y=50;
@@ -1189,10 +1194,11 @@
         /* =====================================================================
            CHECKERS
         ===================================================================== */
-        function startCheckers(container) {
-            const SZ=8,CS=64,W=SZ*CS,H=SZ*CS;
+        function startCheckers(container, W, H) {
+            const SZ=8, CS=Math.floor(Math.min(W,H)/SZ), CW=SZ*CS, CH=SZ*CS;
             const canvas=document.createElement('canvas');
-            canvas.width=W;canvas.height=H;canvas.style.cssText='display:block;margin:auto;cursor:pointer;';
+            canvas.width=CW;canvas.height=CH;
+            canvas.style.cssText='display:block;width:100%;height:100%;object-fit:contain;cursor:pointer;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
             // 0=empty,1=red,2=black,3=red king,4=black king
@@ -1250,11 +1256,11 @@
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-6,0,Math.PI*2);ctx.fill();
                     ctx.strokeStyle=p===1||p===3?'#ff6644':'#555555';ctx.lineWidth=3;
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-10,0,Math.PI*2);ctx.stroke();
-                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font='bold 20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♛',cx,cy);}
+                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font=`bold ${CS*0.3}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♛',cx,cy);}
                 }
-                ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,H-28,W,28);
+                ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,CH-28,CW,28);
                 ctx.fillStyle='#fff';ctx.font='12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                ctx.fillText(msg,W/2,H-14);
+                ctx.fillText(msg,CW/2,CH-14);
             }
             function aiMove(){
                 let moves=[];
@@ -1280,10 +1286,8 @@
             canvas.addEventListener('click',e=>{
                 if(turn!==1)return;
                 let rect=canvas.getBoundingClientRect();
-                let c=Math.floor((e.clientX-rect.left)/CS*SZ/canvas.offsetWidth*CS/CS);
-                let r=Math.floor((e.clientY-rect.top)/CS*SZ/canvas.offsetHeight*CS/CS);
-                c=Math.floor((e.clientX-rect.left)/(canvas.offsetWidth/SZ));
-                r=Math.floor((e.clientY-rect.top)/(canvas.offsetHeight/SZ));
+                let c=Math.floor((e.clientX-rect.left)/(rect.width/SZ));
+                let r=Math.floor((e.clientY-rect.top)/(rect.height/SZ));
                 if(r<0||r>=SZ||c<0||c>=SZ)return;
                 if(sel){
                     let mv=validMoves.find(m=>m.r===r&&m.c===c);
@@ -1300,7 +1304,7 @@
         /* =====================================================================
            POKER (5-Card Draw vs CPU)
         ===================================================================== */
-        function startPoker(container) {
+        function startPoker(container, W, H) {
             container.style.cssText='background:#076324;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;box-sizing:border-box;font-family:"Press Start 2P",monospace;color:#fff;';
             const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
             let deck=[],playerHand=[],cpuHand=[],held=[],chips=500,bet=20,phase='bet',message='';
@@ -1406,15 +1410,16 @@
         /* =====================================================================
            SECRET: SNAKE
         ===================================================================== */
-        function startSecret(container) {
-            const W=560,H=520,CELL=20;
+        function startSecret(container, W, H) {
+            const CELL=20,COLS=Math.floor(W/CELL),ROWS=Math.floor(H/CELL);
             const canvas=document.createElement('canvas');
-            canvas.width=W;canvas.height=H;canvas.style.cssText='display:block;margin:auto;background:#0a0a1a;';
+            canvas.width=W;canvas.height=H;
+            canvas.style.cssText='display:block;width:100%;height:100%;background:#0a0a1a;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
             let snake,dir,food,score,gameOver;
-            function reset(){snake=[{x:14,y:13},{x:13,y:13},{x:12,y:13}];dir={x:1,y:0};score=0;gameOver=false;placeFood();}
-            function placeFood(){food={x:Math.floor(Math.random()*(W/CELL)),y:Math.floor(Math.random()*(H/CELL))};}
+            function reset(){snake=[{x:Math.floor(COLS/2),y:Math.floor(ROWS/2)}];dir={x:1,y:0};score=0;gameOver=false;placeFood();}
+            function placeFood(){food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}
             reset();
             document.addEventListener('keydown',e=>{
                 if(e.key==='ArrowUp'&&dir.y===0){dir={x:0,y:-1};e.preventDefault();}
@@ -1425,7 +1430,7 @@
             canvas.addEventListener('click',()=>{if(gameOver)reset();});
             function update(){
                 if(gameOver)return;
-                let head={x:(snake[0].x+dir.x+W/CELL)%(W/CELL),y:(snake[0].y+dir.y+H/CELL)%(H/CELL)};
+                let head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
                 if(snake.some(s=>s.x===head.x&&s.y===head.y)){gameOver=true;return;}
                 snake.unshift(head);
                 if(head.x===food.x&&head.y===food.y){score+=10;placeFood();document.getElementById('high-score').textContent=String(score).padStart(6,'0');}

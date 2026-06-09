@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -984,16 +984,26 @@
 
         function loadGame(gameKey) {
             const gameFrame = document.getElementById('game-frame');
+            
+            // Cleanup previous game
+            if (gameFrame._cleanup) {
+                gameFrame._cleanup();
+                gameFrame._cleanup = null;
+            }
+            
             const game = GAMES[gameKey];
             if (!game) return;
             document.getElementById('game-title').textContent = game.name;
             document.getElementById('controls-text').textContent = game.controls;
             gameFrame.innerHTML = '';
+
+            // Switch background music
+            switchBgMusic(gameKey);
             
-            // Get dimensions from parent container to avoid zero-size issue
-            const crtScreen = gameFrame.parentElement;
-            const W = crtScreen ? (crtScreen.clientWidth - 40) : 760;  // Subtract padding
-            const H = crtScreen ? (crtScreen.clientHeight - 200) : 520; // Subtract other elements
+            // Get dimensions — use gameFrame itself after clearing content
+            const rect = gameFrame.getBoundingClientRect();
+            const W = rect.width > 50 ? rect.width - 20 : (gameFrame.parentElement ? gameFrame.parentElement.clientWidth - 40 : 760);
+            const H = rect.height > 50 ? rect.height - 20 : (gameFrame.parentElement ? gameFrame.parentElement.clientHeight - 60 : 520);
             
             // Ensure minimum size
             const gameW = Math.max(W, 600);
@@ -1029,22 +1039,78 @@
            PAC-MAN — Fixed + Levels + Proper Movement
         ===================================================================== */
         function startPacman(container, W, H) {
-            const COLS=21, ROWS=21;
-            const CELL=Math.floor(Math.min(W/COLS, H/ROWS));
-            const CW=COLS*CELL, CH=ROWS*CELL;
+            // ── CHIPTUNE BACKGROUND MUSIC via Web Audio ──
+            let _actx = null;
+            let _musicNodes = [];
+            let _musicPlaying = false;
 
-            const canvas=document.createElement('canvas');
-            canvas.width=CW; canvas.height=CH;
-            canvas.style.cssText='display:block;margin:auto;background:#000;';
-            container.style.display='flex';
-            container.style.alignItems='center';
-            container.style.justifyContent='center';
-            container.style.background='#000';
+            function startMusic() {
+                try {
+                    _actx = new (window.AudioContext || window.webkitAudioContext)();
+                    const BPM = 180, beat = 60 / BPM;
+                    // Classic pac-man style loop: alternating notes
+                    const melody = [
+                        494,523,494,440,494,523,587,523,
+                        494,523,494,440,392,440,494,440,
+                        392,440,494,440,494,523,587,659,
+                        698,659,587,523,494,440,392,330
+                    ];
+                    let t = _actx.currentTime + 0.1;
+                    const masterGain = _actx.createGain();
+                    masterGain.gain.value = 0.08;
+                    masterGain.connect(_actx.destination);
+                    _musicNodes.push(masterGain);
+
+                    function scheduleLoop() {
+                        if (!_musicPlaying) return;
+                        melody.forEach((freq, i) => {
+                            const osc = _actx.createOscillator();
+                            const g = _actx.createGain();
+                            osc.type = 'square';
+                            osc.frequency.value = freq;
+                            osc.connect(g); g.connect(masterGain);
+                            const st = t + i * beat * 0.5;
+                            const et = st + beat * 0.45;
+                            g.gain.setValueAtTime(1, st);
+                            g.gain.setValueAtTime(0, et);
+                            osc.start(st); osc.stop(et + 0.01);
+                            _musicNodes.push(osc);
+                        });
+                        t += melody.length * beat * 0.5;
+                        setTimeout(scheduleLoop, (melody.length * beat * 0.5 - 0.5) * 1000);
+                    }
+                    _musicPlaying = true;
+                    scheduleLoop();
+                } catch(e) {}
+            }
+
+            function stopMusic() {
+                _musicPlaying = false;
+                _musicNodes.forEach(n => { try { n.disconnect(); } catch(e){} });
+                _musicNodes = [];
+                if (_actx) { try { _actx.close(); } catch(e){} _actx = null; }
+            }
+
+            // Start music on first user interaction
+            function tryStartMusic() {
+                if (!_musicPlaying) startMusic();
+            }
+
+            // ── CANVAS SETUP ──
+            const COLS = 21, ROWS = 21;
+            const CELL = Math.floor(Math.min(W / COLS, H / ROWS));
+            const CW = COLS * CELL, CH = ROWS * CELL;
+            const canvas = document.createElement('canvas');
+            canvas.width = CW; canvas.height = CH;
+            canvas.style.cssText = 'display:block;margin:auto;background:#000;outline:none;';
+            canvas.setAttribute('tabindex','0');
+            container.style.cssText += ';display:flex;align-items:center;justify-content:center;background:#000;';
             container.appendChild(canvas);
-            const ctx=canvas.getContext('2d');
+            const ctx = canvas.getContext('2d');
+            canvas.focus();
 
-            // BASE MAP  1=wall 2=dot 3=power 4=ghost-house 0=empty
-            const BASE_MAP=[
+            // ── MAP  1=wall 2=dot 3=power 4=ghost-house 0=open ──
+            const BASE = [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
                 [1,3,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,3,1],
@@ -1068,321 +1134,295 @@
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             ];
 
-            // LEVELS config: ghost speed multiplier, frightened duration, bonus
-            const LEVELS_CFG=[
-                {ghostSpd:0.06, frightenMs:8000, label:'LEVEL 1'},
-                {ghostSpd:0.08, frightenMs:6000, label:'LEVEL 2 — FASTER!'},
-                {ghostSpd:0.10, frightenMs:4000, label:'LEVEL 3 — SCARY!'},
-                {ghostSpd:0.12, frightenMs:2500, label:'LEVEL 4 — DANGER!'},
-                {ghostSpd:0.14, frightenMs:1500, label:'LEVEL 5 — INSANE!'},
+            const LVL_CFG = [
+                {ghostSpd:0.07, frightenMs:7000, name:'LEVEL 1'},
+                {ghostSpd:0.09, frightenMs:5500, name:'LEVEL 2 — FASTER!'},
+                {ghostSpd:0.11, frightenMs:4000, name:'LEVEL 3 — SCARY!'},
+                {ghostSpd:0.13, frightenMs:2500, name:'LEVEL 4 — DANGER!'},
+                {ghostSpd:0.15, frightenMs:1200, name:'LEVEL 5 — INSANE!'}
             ];
-            let lvlIdx=0;
+            const GCOLS = ['#ff0000','#ffb8ff','#00ffff','#ffb852'];
+            const GSTART = [{x:9,y:9},{x:11,y:9},{x:9,y:10},{x:11,y:10}];
+            const PAC_S = {x:10, y:15};
 
-            const GHOST_START=[{x:9,y:9},{x:10,y:9},{x:11,y:9},{x:10,y:10}];
-            const GHOST_COLORS=['#ff0000','#ffb8ff','#00ffff','#ffb852'];
-            const PAC_START={x:10,y:15};
+            let grid, pac, ghosts, score, lives, level, lvlIdx;
+            let frightened, frightenTimer, gameOver, won;
+            let lvlTransit, transitTimer;
+            let mA=0.25, mDir=1, lastTs=0, rafId=null, active=true;
+            let inputQ = {dx:0, dy:0};
 
-            let grid, pac, ghosts, score=0, lives=3, level=1;
-            let frightened=false, frightenTimer=0;
-            let gameOver=false, won=false;
-            let levelTransition=false, transitionTimer=0;
-            let mouthA=0.25, mouthDir=1;
-            let lastTs=0, running=true;
-            let rafId=null;
-
-            // INPUT — store desired direction
-            let inputDir={dx:0,dy:0};
-            const keyHandler=e=>{
-                if(e.key==='ArrowUp')   {inputDir={dx:0,dy:-1};e.preventDefault();}
-                if(e.key==='ArrowDown') {inputDir={dx:0,dy:1}; e.preventDefault();}
-                if(e.key==='ArrowLeft') {inputDir={dx:-1,dy:0};e.preventDefault();}
-                if(e.key==='ArrowRight'){inputDir={dx:1,dy:0}; e.preventDefault();}
+            // ── INPUT: attach to BOTH document AND canvas ──
+            const onKey = e => {
+                if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) return;
+                e.preventDefault();
+                tryStartMusic();
+                if(e.key==='ArrowUp')    inputQ={dx:0,dy:-1};
+                if(e.key==='ArrowDown')  inputQ={dx:0,dy:1};
+                if(e.key==='ArrowLeft')  inputQ={dx:-1,dy:0};
+                if(e.key==='ArrowRight') inputQ={dx:1,dy:0};
             };
-            document.addEventListener('keydown', keyHandler);
+            document.addEventListener('keydown', onKey);
+            canvas.addEventListener('keydown', onKey);
 
-            function initLevel(){
-                grid=BASE_MAP.map(r=>r.slice());
-                pac={x:PAC_START.x, y:PAC_START.y, dx:0, dy:0, px:PAC_START.x, py:PAC_START.y};
-                ghosts=GHOST_START.map((g,i)=>({
-                    x:g.x, y:g.y, dx:i<2?1:-1, dy:0,
-                    color:GHOST_COLORS[i], scatter:i*30
-                }));
+            // Touch swipe
+            let tx0=0,ty0=0;
+            canvas.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;tryStartMusic();},{passive:true});
+            canvas.addEventListener('touchend',e=>{
+                const dx=e.changedTouches[0].clientX-tx0, dy=e.changedTouches[0].clientY-ty0;
+                if(Math.abs(dx)>Math.abs(dy)) inputQ=dx>0?{dx:1,dy:0}:{dx:-1,dy:0};
+                else inputQ=dy>0?{dx:0,dy:1}:{dx:0,dy:-1};
+            },{passive:true});
+            canvas.addEventListener('click', tryStartMusic);
+
+            function initLevel() {
+                grid = BASE.map(r=>r.slice());
+                pac = {x:PAC_S.x, y:PAC_S.y, dx:0, dy:0};
+                ghosts = GSTART.map((g,i)=>({x:g.x,y:g.y,dx:i%2===0?1:-1,dy:0,color:GCOLS[i],scatter:i*20}));
                 frightened=false; frightenTimer=0;
-                inputDir={dx:0,dy:0};
+                inputQ={dx:0,dy:0};
             }
 
-            function isWall(c,r){
-                if(c<0||c>=COLS||r<0||r>=ROWS)return true;
-                const v=grid[r][c];
-                return v===1||v===4;
+            function reset() {
+                score=0; lives=3; level=1; lvlIdx=0;
+                gameOver=false; won=false;
+                lvlTransit=false; transitTimer=0;
+                document.getElementById('high-score').textContent='000000';
+                document.getElementById('lives').textContent='♥♥♥';
+                initLevel();
+            }
+            reset();
+
+            function isWall(c,r) {
+                if(c<0||c>=COLS||r<0||r>=ROWS) return true;
+                return grid[r][c]===1||grid[r][c]===4;
             }
 
-            // Smooth tile-by-tile movement
-            function tryMove(obj, dx, dy, spd){
-                // snap to grid when close
-                const tx=Math.round(obj.x), ty=Math.round(obj.y);
-                const aligned = Math.abs(obj.x-tx)<spd+0.1 && Math.abs(obj.y-ty)<spd+0.1;
-                if(aligned){
-                    obj.x=tx; obj.y=ty;
-                    if(!isWall(tx+dx, ty+dy)){
-                        obj.dx=dx; obj.dy=dy;
+            // ── SMOOTH GRID-ALIGNED MOVEMENT ──
+            function movePac(dt) {
+                const SPD = 0.13;
+                const tx=Math.round(pac.x), ty=Math.round(pac.y);
+                const snap = Math.abs(pac.x-tx)<SPD+0.12 && Math.abs(pac.y-ty)<SPD+0.12;
+                if(snap) {
+                    pac.x=tx; pac.y=ty;
+                    // try buffered input direction first
+                    if(inputQ.dx!==0||inputQ.dy!==0) {
+                        if(!isWall(tx+inputQ.dx, ty+inputQ.dy)) {
+                            pac.dx=inputQ.dx; pac.dy=inputQ.dy;
+                            inputQ={dx:0,dy:0};
+                        }
                     }
-                    if(!isWall(tx+obj.dx, ty+obj.dy)){
-                        obj.x+=obj.dx*spd; obj.y+=obj.dy*spd;
+                    // keep going in current direction if possible
+                    if(!isWall(tx+pac.dx, ty+pac.dy)) {
+                        pac.x+=pac.dx*SPD; pac.y+=pac.dy*SPD;
                     }
                 } else {
-                    obj.x+=obj.dx*spd; obj.y+=obj.dy*spd;
-                    // wrap tunnel
-                    if(obj.x<0)obj.x=COLS-1;
-                    if(obj.x>=COLS)obj.x=0;
+                    pac.x+=pac.dx*SPD; pac.y+=pac.dy*SPD;
+                    pac.x=(pac.x+COLS)%COLS; pac.y=(pac.y+ROWS)%ROWS;
                 }
             }
 
-            function moveGhost(g){
-                const cfg=LEVELS_CFG[Math.min(lvlIdx, LEVELS_CFG.length-1)];
+            function moveGhost(g) {
+                const cfg = LVL_CFG[Math.min(lvlIdx,LVL_CFG.length-1)];
                 const spd = frightened ? cfg.ghostSpd*0.5 : cfg.ghostSpd;
                 const tx=Math.round(g.x), ty=Math.round(g.y);
-                if(Math.abs(g.x-tx)<spd+0.1 && Math.abs(g.y-ty)<spd+0.1){
+                if(Math.abs(g.x-tx)<spd+0.12 && Math.abs(g.y-ty)<spd+0.12) {
                     g.x=tx; g.y=ty;
                     const dirs=[{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
                     let valid=dirs.filter(d=>!isWall(tx+d.dx,ty+d.dy)&&!(d.dx===-g.dx&&d.dy===-g.dy));
                     if(!valid.length) valid=dirs.filter(d=>!isWall(tx+d.dx,ty+d.dy));
                     if(!valid.length) return;
-                    let chosen;
-                    if(frightened){
-                        chosen=valid[Math.floor(Math.random()*valid.length)];
-                    } else {
-                        chosen=valid.reduce((best,d)=>{
-                            const dist=Math.hypot(g.x+d.dx-pac.x, g.y+d.dy-pac.y);
-                            const bdist=Math.hypot(g.x+best.dx-pac.x, g.y+best.dy-pac.y);
-                            return dist<bdist?d:best;
-                        }, valid[0]);
-                    }
+                    const chosen = frightened
+                        ? valid[Math.floor(Math.random()*valid.length)]
+                        : valid.reduce((b,d)=>Math.hypot(g.x+d.dx-pac.x,g.y+d.dy-pac.y)<Math.hypot(g.x+b.dx-pac.x,g.y+b.dy-pac.y)?d:b,valid[0]);
                     g.dx=chosen.dx; g.dy=chosen.dy;
                 }
                 g.x+=g.dx*spd; g.y+=g.dy*spd;
-                if(g.x<0)g.x=COLS-1;
-                if(g.x>=COLS)g.x=0;
+                if(g.x<0)g.x=COLS-1; if(g.x>=COLS)g.x=0;
             }
 
-            function drawCell(c,r){
-                const v=grid[r][c];
-                const px=c*CELL, py=r*CELL;
-                if(v===1){
-                    ctx.fillStyle='#00008b';
-                    ctx.fillRect(px,py,CELL,CELL);
-                    ctx.strokeStyle='#1a1aff';
-                    ctx.lineWidth=1;
-                    ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
-                } else {
-                    ctx.fillStyle='#000';
-                    ctx.fillRect(px,py,CELL,CELL);
-                    if(v===2){
-                        ctx.fillStyle='#ffdd00';
-                        ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*0.12,0,Math.PI*2);ctx.fill();
-                    } else if(v===3){
-                        ctx.fillStyle='#ffaa00';
-                        const pulse=0.22+0.07*Math.sin(Date.now()/200);
-                        ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*pulse,0,Math.PI*2);ctx.fill();
+            // ── AUDIO EFFECTS ──
+            function playEat() {
+                if(!_actx) return;
+                try {
+                    const o=_actx.createOscillator(), g=_actx.createGain();
+                    o.connect(g); g.connect(_actx.destination);
+                    const t=_actx.currentTime;
+                    o.frequency.setValueAtTime(400,t); o.frequency.setValueAtTime(600,t+0.04);
+                    g.gain.setValueAtTime(0.15,t); g.gain.setValueAtTime(0,t+0.06);
+                    o.start(t); o.stop(t+0.07);
+                } catch(e){}
+            }
+            function playDie() {
+                if(!_actx) return;
+                try {
+                    const o=_actx.createOscillator(), g=_actx.createGain();
+                    o.connect(g); g.connect(_actx.destination);
+                    const t=_actx.currentTime;
+                    o.frequency.setValueAtTime(600,t); o.frequency.linearRampToValueAtTime(100,t+0.5);
+                    g.gain.setValueAtTime(0.3,t); g.gain.setValueAtTime(0,t+0.5);
+                    o.start(t); o.stop(t+0.5);
+                } catch(e){}
+            }
+            function playPower() {
+                if(!_actx) return;
+                try {
+                    [0,0.1,0.2].forEach(delay=>{
+                        const o=_actx.createOscillator(), g=_actx.createGain();
+                        o.connect(g); g.connect(_actx.destination);
+                        const t=_actx.currentTime+delay;
+                        o.type='sawtooth'; o.frequency.setValueAtTime(300+delay*500,t);
+                        g.gain.setValueAtTime(0.2,t); g.gain.setValueAtTime(0,t+0.08);
+                        o.start(t); o.stop(t+0.09);
+                    });
+                } catch(e){}
+            }
+
+            // ── DRAW HELPERS ──
+            function drawMap() {
+                for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+                    const v=grid[r][c], px=c*CELL, py=r*CELL;
+                    if(v===1) {
+                        ctx.fillStyle='#00008b'; ctx.fillRect(px,py,CELL,CELL);
+                        ctx.strokeStyle='#0000ff'; ctx.lineWidth=1;
+                        ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
+                    } else {
+                        ctx.fillStyle='#000'; ctx.fillRect(px,py,CELL,CELL);
+                        if(v===2) {
+                            ctx.fillStyle='#ffdd00';
+                            ctx.beginPath(); ctx.arc(px+CELL/2,py+CELL/2,CELL*0.11,0,Math.PI*2); ctx.fill();
+                        } else if(v===3) {
+                            const p=0.22+0.07*Math.sin(Date.now()/200);
+                            ctx.fillStyle='#ffaa00';
+                            ctx.beginPath(); ctx.arc(px+CELL/2,py+CELL/2,CELL*p,0,Math.PI*2); ctx.fill();
+                        }
                     }
                 }
             }
 
-            function drawPac(){
+            function drawPac() {
                 const cx=pac.x*CELL+CELL/2, cy=pac.y*CELL+CELL/2;
-                const ang=Math.atan2(pac.dy||0, pac.dx||1);
+                const ang=Math.atan2(pac.dy||0,pac.dx||1);
                 ctx.fillStyle='#ffff00';
-                ctx.beginPath();
-                ctx.moveTo(cx,cy);
-                ctx.arc(cx,cy,CELL/2-1, ang+mouthA*Math.PI, ang+(2-mouthA)*Math.PI);
+                ctx.beginPath(); ctx.moveTo(cx,cy);
+                ctx.arc(cx,cy,CELL/2-1,ang+mA*Math.PI,ang+(2-mA)*Math.PI);
                 ctx.closePath(); ctx.fill();
-                // eye
                 const ex=cx+Math.cos(ang+Math.PI/4)*CELL*0.28;
                 const ey=cy+Math.sin(ang+Math.PI/4)*CELL*0.28;
                 ctx.fillStyle='#000';
-                ctx.beginPath();ctx.arc(ex,ey,CELL*0.07,0,Math.PI*2);ctx.fill();
+                ctx.beginPath(); ctx.arc(ex,ey,CELL*0.07,0,Math.PI*2); ctx.fill();
             }
 
-            function drawGhost(g){
-                const cx=g.x*CELL+CELL/2, cy=g.y*CELL+CELL/2;
-                const r=CELL/2-1;
-                const flash=frightened&&frightenTimer<2000&&Math.floor(Date.now()/250)%2===0;
+            function drawGhost(g) {
+                const cx=g.x*CELL+CELL/2, cy=g.y*CELL+CELL/2, r=CELL/2-1;
+                const flash=frightened&&frightenTimer<2000&&Math.floor(Date.now()/300)%2===0;
                 ctx.fillStyle=frightened?(flash?'#fff':'#2222cc'):g.color;
-                // body
                 ctx.beginPath();
                 ctx.arc(cx,cy-r*0.1,r,Math.PI,0);
                 ctx.lineTo(cx+r,cy+r);
-                for(let i=3;i>=0;i--){
-                    ctx.lineTo(cx+r-i*(2*r/3), cy+r-(i%2===0?r*0.5:0));
-                }
-                ctx.lineTo(cx-r,cy+r);
-                ctx.closePath(); ctx.fill();
-                // eyes
-                if(!frightened){
+                for(let i=3;i>=0;i--) ctx.lineTo(cx+r-i*(2*r/3),cy+r-(i%2===0?r*0.45:0));
+                ctx.lineTo(cx-r,cy+r); ctx.closePath(); ctx.fill();
+                if(!frightened) {
                     ctx.fillStyle='#fff';
-                    ctx.beginPath();ctx.arc(cx-r*0.32,cy-r*0.2,r*0.28,0,Math.PI*2);ctx.fill();
-                    ctx.beginPath();ctx.arc(cx+r*0.32,cy-r*0.2,r*0.28,0,Math.PI*2);ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx-r*0.3,cy-r*0.2,r*0.27,0,Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx+r*0.3,cy-r*0.2,r*0.27,0,Math.PI*2); ctx.fill();
                     ctx.fillStyle='#00f';
-                    ctx.beginPath();ctx.arc(cx-r*0.28,cy-r*0.18,r*0.15,0,Math.PI*2);ctx.fill();
-                    ctx.beginPath();ctx.arc(cx+r*0.36,cy-r*0.18,r*0.15,0,Math.PI*2);ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx-r*0.26,cy-r*0.18,r*0.14,0,Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx+r*0.34,cy-r*0.18,r*0.14,0,Math.PI*2); ctx.fill();
                 } else {
-                    ctx.fillStyle='#fff';
-                    ctx.font=`${CELL*0.5}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('👻',cx,cy+1);
+                    ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font=`${CELL*0.5}px sans-serif`;
+                    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('👻',cx,cy+1);
                 }
             }
 
-            function update(ts){
-                if(!running) return;
-                const dt=Math.min(ts-lastTs, 50); lastTs=ts;
-
-                if(levelTransition){
-                    transitionTimer-=dt;
-                    if(transitionTimer<=0){levelTransition=false;}
-                    return;
-                }
+            // ── UPDATE ──
+            function update(ts) {
+                if(!active) return;
+                const dt=Math.min(ts-lastTs,50); lastTs=ts;
+                if(lvlTransit) { transitTimer-=dt; if(transitTimer<=0) lvlTransit=false; return; }
                 if(gameOver||won) return;
-
-                // mouth
-                mouthA+=0.06*mouthDir;
-                if(mouthA>0.42||mouthA<0.02) mouthDir*=-1;
-
-                // move pac
-                const PAC_SPD=0.13;
-                tryMove(pac, inputDir.dx, inputDir.dy, PAC_SPD);
-
-                // eat
+                mA+=0.06*mDir; if(mA>0.42||mA<0.02) mDir*=-1;
+                movePac(dt);
                 const col=Math.round(pac.x), row=Math.round(pac.y);
-                if(row>=0&&row<ROWS&&col>=0&&col<COLS){
-                    if(grid[row][col]===2){
-                        grid[row][col]=0; score+=10;
+                if(row>=0&&row<ROWS&&col>=0&&col<COLS) {
+                    if(grid[row][col]===2) { grid[row][col]=0; score+=10; playEat(); document.getElementById('high-score').textContent=String(score).padStart(6,'0'); }
+                    if(grid[row][col]===3) {
+                        grid[row][col]=0; score+=50; playPower();
                         document.getElementById('high-score').textContent=String(score).padStart(6,'0');
-                    }
-                    if(grid[row][col]===3){
-                        grid[row][col]=0; score+=50;
-                        document.getElementById('high-score').textContent=String(score).padStart(6,'0');
-                        const cfg=LEVELS_CFG[Math.min(lvlIdx, LEVELS_CFG.length-1)];
+                        const cfg=LVL_CFG[Math.min(lvlIdx,LVL_CFG.length-1)];
                         frightened=true; frightenTimer=cfg.frightenMs;
                     }
                 }
-
-                // frightened timer
-                if(frightened){ frightenTimer-=dt; if(frightenTimer<=0) frightened=false; }
-
-                // move ghosts
+                if(frightened) { frightenTimer-=dt; if(frightenTimer<=0) frightened=false; }
                 ghosts.forEach(g=>moveGhost(g));
-
-                // ghost collisions
                 ghosts.forEach(g=>{
-                    if(Math.hypot(pac.x-g.x, pac.y-g.y)<0.75){
-                        if(frightened){
-                            score+=200;
-                            document.getElementById('high-score').textContent=String(score).padStart(6,'0');
+                    if(Math.hypot(pac.x-g.x,pac.y-g.y)<0.78) {
+                        if(frightened) {
+                            score+=200; document.getElementById('high-score').textContent=String(score).padStart(6,'0');
                             g.x=10; g.y=9; g.dx=0; g.dy=-1;
                         } else {
-                            lives--;
+                            playDie(); lives--;
                             document.getElementById('lives').textContent='♥'.repeat(Math.max(0,lives));
-                            if(lives<=0){ gameOver=true; }
-                            else {
-                                pac.x=PAC_START.x; pac.y=PAC_START.y; pac.dx=0; pac.dy=0;
-                                inputDir={dx:0,dy:0};
-                                frightened=false;
-                            }
+                            if(lives<=0) { gameOver=true; }
+                            else { pac={x:PAC_S.x,y:PAC_S.y,dx:0,dy:0}; inputQ={dx:0,dy:0}; frightened=false; }
                         }
                     }
                 });
-
-                // level clear
-                const dotsLeft=grid.flat().filter(v=>v===2||v===3).length;
-                if(dotsLeft===0){
-                    lvlIdx++;
-                    level++;
-                    levelTransition=true;
-                    transitionTimer=2500;
-                    setTimeout(()=>initLevel(), 500);
+                if(grid.flat().filter(v=>v===2||v===3).length===0) {
+                    lvlIdx++; level++;
+                    lvlTransit=true; transitTimer=2500;
+                    setTimeout(()=>initLevel(),500);
                 }
             }
 
-            function draw(){
-                ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
-                for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawCell(c,r);
-                drawPac();
-                ghosts.forEach(g=>drawGhost(g));
+            // ── DRAW ──
+            function draw() {
+                ctx.fillStyle='#000'; ctx.fillRect(0,0,CW,CH);
+                drawMap(); drawPac(); ghosts.forEach(g=>drawGhost(g));
+                // watermark level
+                ctx.fillStyle='rgba(0,0,180,0.12)'; ctx.font=`bold ${CELL*2.5}px "Press Start 2P",monospace`;
+                ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(`L${level}`,CW/2,CH/2);
 
-                // level badge
-                ctx.fillStyle='rgba(0,0,200,0.18)';
-                ctx.font=`bold ${CELL*2}px "Press Start 2P",monospace`;
-                ctx.textAlign='center'; ctx.textBaseline='middle';
-                ctx.fillText(`L${level}`,CW/2,CH/2);
-
-                // level transition overlay
-                if(levelTransition){
-                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
-                    ctx.fillStyle='#ffff00';
-                    ctx.font=`bold ${CELL*1.5}px "Press Start 2P",monospace`;
+                if(lvlTransit) {
+                    ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#ffff00'; ctx.font=`bold ${CELL*1.4}px "Press Start 2P",monospace`;
                     ctx.textAlign='center'; ctx.textBaseline='middle';
-                    ctx.fillText(`LEVEL ${level}`, CW/2, CH/2-CELL);
-                    const cfg=LEVELS_CFG[Math.min(lvlIdx-1, LEVELS_CFG.length-1)];
-                    ctx.fillStyle='#00f5ff';
-                    ctx.font=`${CELL*0.6}px "Press Start 2P",monospace`;
-                    ctx.fillText(cfg?cfg.label:'', CW/2, CH/2+CELL*0.5);
-                    ctx.fillStyle='#fff';
-                    ctx.font=`${CELL*0.55}px "Press Start 2P",monospace`;
-                    ctx.fillText('SCORE: '+score, CW/2, CH/2+CELL*1.5);
+                    ctx.fillText(`LEVEL ${level}!`,CW/2,CH/2-CELL);
+                    const cfg=LVL_CFG[Math.min(lvlIdx-1,LVL_CFG.length-1)];
+                    ctx.fillStyle='#00f5ff'; ctx.font=`${CELL*0.6}px "Press Start 2P",monospace`;
+                    ctx.fillText(cfg?cfg.name:'',CW/2,CH/2+CELL*0.5);
+                    ctx.fillStyle='#fff'; ctx.font=`${CELL*0.55}px "Press Start 2P",monospace`;
+                    ctx.fillText('SCORE: '+score,CW/2,CH/2+CELL*1.6);
                 }
-
-                if(gameOver){
-                    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,CW,CH);
-                    ctx.fillStyle='#ff3030';
-                    ctx.font=`bold ${CELL*1.4}px "Press Start 2P",monospace`;
+                if(gameOver) {
+                    ctx.fillStyle='rgba(0,0,0,0.82)'; ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#ff3030'; ctx.font=`bold ${CELL*1.3}px "Press Start 2P",monospace`;
                     ctx.textAlign='center'; ctx.textBaseline='middle';
-                    ctx.fillText('GAME OVER',CW/2,CH/2-CELL*1.5);
-                    ctx.fillStyle='#fff';
-                    ctx.font=`${CELL*0.6}px "Press Start 2P",monospace`;
-                    ctx.fillText(`SCORE: ${score}`,CW/2,CH/2);
-                    ctx.fillText(`LEVEL: ${level}`,CW/2,CH/2+CELL);
-                    ctx.fillStyle='#00f5ff';
-                    ctx.font=`${CELL*0.5}px "Press Start 2P",monospace`;
-                    ctx.fillText('Click to Restart',CW/2,CH/2+CELL*2.2);
+                    ctx.fillText('GAME OVER',CW/2,CH/2-CELL*1.8);
+                    ctx.fillStyle='#fff'; ctx.font=`${CELL*0.58}px "Press Start 2P",monospace`;
+                    ctx.fillText(`SCORE: ${score}`,CW/2,CH/2-CELL*0.5);
+                    ctx.fillText(`LEVEL REACHED: ${level}`,CW/2,CH/2+CELL*0.5);
+                    ctx.fillStyle='#00f5ff'; ctx.font=`${CELL*0.5}px "Press Start 2P",monospace`;
+                    ctx.fillText('Click to Restart',CW/2,CH/2+CELL*1.8);
                 }
             }
 
             canvas.addEventListener('click',()=>{
-                if(gameOver||won){
-                    score=0; lives=3; level=1; lvlIdx=0; gameOver=false; won=false;
-                    initLevel();
-                    document.getElementById('lives').textContent='♥♥♥';
-                    document.getElementById('high-score').textContent='000000';
-                }
+                if(gameOver||won){reset();tryStartMusic();}
             });
 
-            // Swipe support for mobile
-            let touchStartX=0, touchStartY=0;
-            canvas.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
-            canvas.addEventListener('touchend',e=>{
-                const dx=e.changedTouches[0].clientX-touchStartX;
-                const dy=e.changedTouches[0].clientY-touchStartY;
-                if(Math.abs(dx)>Math.abs(dy)){inputDir=dx>0?{dx:1,dy:0}:{dx:-1,dy:0};}
-                else{inputDir=dy>0?{dx:0,dy:1}:{dx:0,dy:-1};}
-            },{passive:true});
-
-            // Cleanup on game change
-            container._cleanup=()=>{
-                running=false;
-                document.removeEventListener('keydown',keyHandler);
+            container._cleanup = () => {
+                active=false; stopMusic();
+                document.removeEventListener('keydown',onKey);
                 if(rafId) cancelAnimationFrame(rafId);
             };
 
-            initLevel();
-
-            function loop(ts){
-                if(!running) return;
+            function loop(ts) {
+                if(!active) return;
                 update(ts); draw();
                 rafId=requestAnimationFrame(loop);
             }
             rafId=requestAnimationFrame(loop);
         }
-
         function startFlappy(container, W, H) {
             const canvas=document.createElement('canvas');
             canvas.width=W;canvas.height=H;
@@ -1390,10 +1430,14 @@
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
             let bird={x:80,y:220,vy:0},pipes=[],score=0,best=0,state='idle',frame=0,gap=160,pipeW=60;
+            let rafId=null;
+            let running=true;
+            
             function reset(){bird={x:80,y:220,vy:0};pipes=[];score=0;frame=0;}
             function addPipe(){let h=80+Math.random()*(H-200-gap);pipes.push({x:W,top:h,bot:h+gap});}
             function flap(){bird.vy=-9;}
             function update(){
+                if(!running) return;
                 if(state!=='play')return;
                 frame++;bird.vy+=0.45;bird.y+=bird.vy;
                 if(frame%90===0)addPipe();
@@ -1407,6 +1451,7 @@
                 document.getElementById('high-score').textContent=String(score).padStart(6,'0');
             }
             function draw(){
+                if(!running) return;
                 ctx.fillStyle='#70c5ce';ctx.fillRect(0,0,W,H);
                 // Ground
                 ctx.fillStyle='#ded895';ctx.fillRect(0,H-30,W,30);
@@ -1445,10 +1490,27 @@
                 else if(state==='play'){flap();}
                 else if(state==='dead'){reset();state='play';flap();}
             }
-            canvas.addEventListener('click',action);
-            document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();action();}});
-            function loop(){draw();update();requestAnimationFrame(loop);}
+            
+            const clickHandler = action;
+            const keyHandler = e=>{if(e.code==='Space'){e.preventDefault();action();}};
+            
+            canvas.addEventListener('click',clickHandler);
+            document.addEventListener('keydown',keyHandler);
+            
+            function loop(){
+                if(!running) return;
+                draw();update();
+                rafId=requestAnimationFrame(loop);
+            }
             loop();
+            
+            // Cleanup
+            container._cleanup=()=>{
+                running=false;
+                canvas.removeEventListener('click',clickHandler);
+                document.removeEventListener('keydown',keyHandler);
+                if(rafId) cancelAnimationFrame(rafId);
+            };
         }
 
         /* =====================================================================
@@ -1534,6 +1596,20 @@
 
             makeBricks(); makeBalls();
 
+            // Define event handlers for cleanup
+            const keyDownHandler=e=>{
+                keys[e.key]=true;
+                if(['ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+                if(e.code==='Space'&&!launched&&!gameOver&&!won){
+                    launched=true;
+                    balls.forEach((b,i)=>{
+                        let spread=(i-1)*0.4; let spd=5+level*0.3;
+                        b.vx=spd*Math.sin(spread); b.vy=-spd*Math.cos(spread); b.active=true;
+                    });
+                }
+            };
+            const keyUpHandler=e=>{keys[e.key]=false;};
+
             // Mouse control
             canvas.addEventListener('mousemove',e=>{
                 let rect=canvas.getBoundingClientRect();
@@ -1554,18 +1630,8 @@
                     });
                 }
             });
-            document.addEventListener('keydown',e=>{
-                keys[e.key]=true;
-                if(['ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-                if(e.code==='Space'&&!launched&&!gameOver&&!won){
-                    launched=true;
-                    balls.forEach((b,i)=>{
-                        let spread=(i-1)*0.4; let spd=5+level*0.3;
-                        b.vx=spd*Math.sin(spread); b.vy=-spd*Math.cos(spread); b.active=true;
-                    });
-                }
-            });
-            document.addEventListener('keyup',e=>{keys[e.key]=false;});
+            document.addEventListener('keydown',keyDownHandler);
+            document.addEventListener('keyup',keyUpHandler);
 
             function update(){
                 if(gameOver||won||levelTransition) return;
@@ -1736,7 +1802,24 @@
                     ctx.fillStyle='#00f5ff';ctx.fillText('Click to Play Again',W/2,H/2+50);
                 }
             }
-            function loop(){update();draw();requestAnimationFrame(loop);}
+            
+            let rafId=null;
+            let running=true;
+            
+            function loop(){
+                if(!running) return;
+                update();draw();
+                rafId=requestAnimationFrame(loop);
+            }
+            
+            // Cleanup
+            container._cleanup=()=>{
+                running=false;
+                document.removeEventListener('keydown',keyDownHandler);
+                document.removeEventListener('keyup',keyUpHandler);
+                if(rafId) cancelAnimationFrame(rafId);
+            };
+            
             loop();
         }
 
@@ -2529,11 +2612,164 @@ function startPoker(container, W, H) {
             };
         }
 
+        // ===== BACKGROUND MUSIC SYSTEM =====
+        let bgMusicNodes = [];
+        let bgMusicRunning = false;
+        let bgMusicTimeout = null;
+
+        function stopBgMusic() {
+            bgMusicRunning = false;
+            if (bgMusicTimeout) { clearTimeout(bgMusicTimeout); bgMusicTimeout = null; }
+            bgMusicNodes.forEach(n => { try { n.stop(); } catch(e){} });
+            bgMusicNodes = [];
+        }
+
+        function switchBgMusic(gameKey) {
+            stopBgMusic();
+            if (!soundEnabled) return;
+            if (gameKey === 'pacman') playPacmanMusic();
+            else if (gameKey === 'flappy') playFlappyMusic();
+            else if (gameKey === 'arkanoid') playArkanoidMusic();
+            else if (gameKey === 'checkers') playCheckersMusic();
+            else if (gameKey === 'poker') playPokerMusic();
+        }
+
+        function makeOsc(freq, type, gainVal, startTime, duration) {
+            if (!soundEnabled) return null;
+            try {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain); gain.connect(audioContext.destination);
+                osc.type = type; osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(gainVal, startTime);
+                gain.gain.setValueAtTime(gainVal, startTime + duration * 0.8);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                osc.start(startTime); osc.stop(startTime + duration);
+                bgMusicNodes.push(osc);
+                return osc;
+            } catch(e) { return null; }
+        }
+
+        function playPacmanMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [494,0.12],[440,0.12],[415,0.12],[440,0.12],[494,0.12],[523,0.12],[587,0.12],[659,0.12],
+                [622,0.12],[587,0.12],[523,0.12],[494,0.12],[440,0.25],[494,0.12],[440,0.12],
+                [415,0.12],[392,0.12],[349,0.12],[392,0.12],[440,0.12],[494,0.25],[0,0.12],
+                [659,0.12],[587,0.12],[523,0.12],[494,0.12],[440,0.12],[415,0.12],[392,0.12],[349,0.25],
+                [0,0.2]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'square', 0.08, t, dur * 0.9);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
+        function playFlappyMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [523,0.15],[659,0.15],[784,0.15],[659,0.15],[523,0.15],[440,0.15],[392,0.15],[440,0.15],
+                [523,0.15],[587,0.15],[659,0.15],[784,0.3],[0,0.1],
+                [880,0.15],[784,0.15],[698,0.15],[659,0.15],[587,0.15],[523,0.3],[0,0.15],
+                [392,0.15],[440,0.15],[523,0.15],[587,0.15],[659,0.3],[0,0.2]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'triangle', 0.07, t, dur * 0.85);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
+        function playArkanoidMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [880,0.1],[0,0.05],[880,0.1],[0,0.05],[1047,0.15],[0,0.05],[988,0.1],[0,0.05],
+                [880,0.1],[0,0.05],[784,0.1],[0,0.05],[698,0.15],[0,0.1],
+                [784,0.1],[0,0.05],[784,0.1],[0,0.05],[880,0.15],[0,0.05],[784,0.1],[0,0.05],
+                [698,0.1],[0,0.05],[659,0.1],[0,0.05],[587,0.2],[0,0.15],
+                [659,0.1],[0,0.05],[698,0.1],[0,0.05],[784,0.1],[0,0.05],[880,0.1],[0,0.05],
+                [988,0.2],[0,0.2]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'sawtooth', 0.06, t, dur * 0.8);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
+        function playCheckersMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [330,0.4],[370,0.4],[415,0.4],[494,0.6],[0,0.2],
+                [440,0.4],[415,0.4],[370,0.4],[330,0.6],[0,0.2],
+                [294,0.4],[330,0.4],[370,0.4],[415,0.6],[0,0.2],
+                [440,0.8],[370,0.4],[330,0.6],[0,0.3]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'sine', 0.06, t, dur * 0.9);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
+        function playPokerMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [392,0.2],[440,0.2],[494,0.2],[523,0.3],[0,0.1],
+                [587,0.2],[523,0.2],[494,0.2],[440,0.3],[0,0.1],
+                [415,0.2],[440,0.2],[466,0.2],[494,0.3],[0,0.1],
+                [523,0.4],[494,0.2],[440,0.2],[415,0.5],[0,0.2],
+                [370,0.2],[392,0.2],[415,0.2],[440,0.3],[0,0.1],
+                [466,0.2],[440,0.2],[415,0.2],[392,0.4],[0,0.3]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'triangle', 0.065, t, dur * 0.88);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
         // ===== SOUND TOGGLE =====
         document.getElementById('sound-toggle').addEventListener('click', (e) => {
             soundEnabled = !soundEnabled;
             e.target.textContent = soundEnabled ? '🔊 ON' : '🔇 OFF';
             e.target.classList.toggle('muted');
+            if (!soundEnabled) {
+                stopBgMusic();
+            } else if (currentGame) {
+                switchBgMusic(currentGame);
+            }
         });
 
         // ===== GAME MENU EVENT LISTENERS =====

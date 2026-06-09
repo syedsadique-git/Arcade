@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -333,7 +333,7 @@
         }
 
         .game-item.active .game-item-tagline::before {
-            content: '► ';
+            content: 'â–º ';
             color: var(--neon-yellow);
             animation: blink 0.8s ease-in-out infinite;
         }
@@ -651,7 +651,46 @@
             }
         }
 
-        /* ===== SCROLLBAR ===== */
+        /* ===== FULLSCREEN BUTTON ===== */
+        .fullscreen-btn {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 0 8px var(--neon-cyan);
+        }
+        .fullscreen-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+        /* Fullscreen game-frame styling */
+        .game-frame:fullscreen,
+        .game-frame:-webkit-full-screen {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .game-frame:fullscreen canvas,
+        .game-frame:-webkit-full-screen canvas {
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto !important;
+            height: auto !important;
+        }
         .sidebar::-webkit-scrollbar {
             width: 8px;
         }
@@ -670,10 +709,10 @@
 <body>
     <!-- ===== HEADER ===== -->
     <header class="header">
-        <div class="logo">█▀▀ ARCADE</div>
+        <div class="logo">â–ˆâ–€â–€ ARCADE</div>
         <div class="marquee-container">
             <div class="marquee-text">
-                WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★ HIGH SCORES UPDATED DAILY ★ WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★
+                WELCOME TO THE ARCADE â˜… INSERT COIN TO PLAY â˜… HIGH SCORES UPDATED DAILY â˜… WELCOME TO THE ARCADE â˜… INSERT COIN TO PLAY â˜…
             </div>
         </div>
         <div class="header-right">
@@ -685,7 +724,7 @@
                 <span class="coin-icon"></span>
                 <span id="coin-count">99</span>
             </div>
-            <button class="sound-toggle" id="sound-toggle">🔊 ON</button>
+            <button class="sound-toggle" id="sound-toggle">ðŸ”Š ON</button>
         </div>
     </header>
 
@@ -697,27 +736,27 @@
 
             <div class="game-menu" id="game-menu">
                 <div class="game-item" data-game="pacman" data-tagline="Eat dots. Dodge ghosts.">
-                    <span class="game-item-icon">🟡</span>
+                    <span class="game-item-icon">ðŸŸ¡</span>
                     <span class="game-item-name">PAC-MAN</span>
                     <span class="game-item-tagline">Eat dots. Dodge ghosts.</span>
                 </div>
                 <div class="game-item" data-game="flappy" data-tagline="Flap through the pipes.">
-                    <span class="game-item-icon">🐦</span>
+                    <span class="game-item-icon">ðŸ¦</span>
                     <span class="game-item-name">FLAPPY BIRD</span>
                     <span class="game-item-tagline">Flap through the pipes.</span>
                 </div>
                 <div class="game-item" data-game="arkanoid" data-tagline="Bounce, crash, destroy!">
-                    <span class="game-item-icon">🧱</span>
+                    <span class="game-item-icon">ðŸ§±</span>
                     <span class="game-item-name">ARKANOID</span>
                     <span class="game-item-tagline">Bounce, crash, destroy!</span>
                 </div>
                 <div class="game-item" data-game="checkers" data-tagline="King me, baby.">
-                    <span class="game-item-icon">♟️</span>
+                    <span class="game-item-icon">â™Ÿï¸</span>
                     <span class="game-item-name">CHECKERS</span>
                     <span class="game-item-tagline">King me, baby.</span>
                 </div>
                 <div class="game-item" data-game="poker" data-tagline="All in, all night.">
-                    <span class="game-item-icon">🃏</span>
+                    <span class="game-item-icon">ðŸƒ</span>
                     <span class="game-item-name">POKER</span>
                     <span class="game-item-tagline">All in, all night.</span>
                 </div>
@@ -727,9 +766,9 @@
             <div class="difficulty-selector">
                 <div class="difficulty-header">DIFFICULTY</div>
                 <div class="difficulty-buttons">
-                    <button class="difficulty-btn active" data-difficulty="normal">🔷 NORMAL</button>
-                    <button class="difficulty-btn" data-difficulty="easy">🟩 EASY</button>
-                    <button class="difficulty-btn" data-difficulty="hard">🔴 HARD</button>
+                    <button class="difficulty-btn active" data-difficulty="normal">ðŸ”· NORMAL</button>
+                    <button class="difficulty-btn" data-difficulty="easy">ðŸŸ© EASY</button>
+                    <button class="difficulty-btn" data-difficulty="hard">ðŸ”´ HARD</button>
                 </div>
                 <div class="difficulty-multiplier" id="difficulty-multiplier">1.0x MULTIPLIER</div>
             </div>
@@ -756,7 +795,7 @@
                     </div>
                     <div class="stat-item lives-display">
                         <span>LIVES:</span>
-                        <span id="lives">♥♥♥</span>
+                        <span id="lives">â™¥â™¥â™¥</span>
                     </div>
                 </div>
             </div>
@@ -764,16 +803,17 @@
             <!-- CRT Screen -->
             <div class="crt-screen">
                 <div class="game-frame" id="game-frame">
+                    <button class="fullscreen-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
                     <div class="insert-coin">
-                        <div class="arcade-cabinet">🕹️</div>
+                        <div class="arcade-cabinet">ðŸ•¹ï¸</div>
                         <div class="insert-coin-text">INSERT COIN</div>
                         <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
                     </div>
                 </div>
                 <div class="game-controls" id="controls-text">
-                    ► Use Arrow Keys or Mouse to Play<br>
-                    ► ESC to Return to Menu<br>
-                    ► Konami Code: ↑↑↓↓←→←→BA
+                    â–º Use Arrow Keys or Mouse to Play<br>
+                    â–º ESC to Return to Menu<br>
+                    â–º Konami Code: â†‘â†‘â†“â†“â†â†’â†â†’BA
                 </div>
             </div>
         </main>
@@ -782,7 +822,7 @@
     <!-- ===== FOOTER ===== -->
     <footer class="footer">
         <div class="footer-text">
-            © ARCADE ZONE — ALL RIGHTS RESERVED — PLAY RESPONSIBLY <span class="cursor"></span>
+            Â© ARCADE ZONE â€” ALL RIGHTS RESERVED â€” PLAY RESPONSIBLY <span class="cursor"></span>
         </div>
     </footer>
 
@@ -794,11 +834,11 @@
     <script>
         // ===== STATE & CONFIG =====
         const GAMES = {
-            pacman:   { name: 'PAC-MAN',     controls: '► Arrow Keys to Move ► Eat Dots and Power Pellets ► Avoid Ghosts' },
-            flappy:   { name: 'FLAPPY BIRD',  controls: '► CLICK or SPACE to Flap ► Avoid Pipes ► Survive as Long as Possible' },
-            arkanoid: { name: 'ARKANOID',     controls: '► Mouse / Arrow Keys to Move Paddle ► Bounce Ball to Destroy Bricks ► Don\'t Let Ball Fall' },
-            checkers: { name: 'CHECKERS',     controls: '► CLICK to Select Piece ► CLICK destination to Move ► Jump to Capture ► Reach far end to Crown' },
-            poker:    { name: 'POKER',        controls: '► Click BET / CALL / FOLD ► Beat the Dealer ► Best hand wins' }
+            pacman:   { name: 'PAC-MAN',     controls: 'â–º Arrow Keys to Move â–º Eat Dots and Power Pellets â–º Avoid Ghosts' },
+            flappy:   { name: 'FLAPPY BIRD',  controls: 'â–º CLICK or SPACE to Flap â–º Avoid Pipes â–º Survive as Long as Possible' },
+            arkanoid: { name: 'ARKANOID',     controls: 'â–º Mouse / Arrow Keys to Move Paddle â–º Bounce Ball to Destroy Bricks â–º Don\'t Let Ball Fall' },
+            checkers: { name: 'CHECKERS',     controls: 'â–º CLICK to Select Piece â–º CLICK destination to Move â–º Jump to Capture â–º Reach far end to Crown' },
+            poker:    { name: 'POKER',        controls: 'â–º Click BET / CALL / FOLD â–º Beat the Dealer â–º Best hand wins' }
         };
 
         let currentGame = null;
@@ -968,169 +1008,363 @@
         }
 
         /* =====================================================================
-           PAC-MAN
+           PAC-MAN â€” Fixed + Levels + Proper Movement
         ===================================================================== */
         function startPacman(container, W, H) {
-            const COLS=20,ROWS=20,CELL=Math.floor(Math.min(W/COLS,H/ROWS));
+            const COLS=21, ROWS=21;
+            const CELL=Math.floor(Math.min(W/COLS, H/ROWS));
             const CW=COLS*CELL, CH=ROWS*CELL;
+
             const canvas=document.createElement('canvas');
             canvas.width=CW; canvas.height=CH;
-            canvas.style.cssText='display:block;width:100%;height:100%;object-fit:contain;background:#000;cursor:none;';
+            canvas.style.cssText='display:block;margin:auto;background:#000;';
+            container.style.display='flex';
+            container.style.alignItems='center';
+            container.style.justifyContent='center';
+            container.style.background='#000';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
-            const MAP=[
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
-                [1,3,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,3,1],
-                [1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1],
-                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-                [1,2,1,1,2,1,2,1,1,1,1,1,1,2,1,2,1,1,2,1],
-                [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
-                [1,1,1,1,2,1,1,0,0,0,0,0,0,1,1,2,1,1,1,1],
-                [1,1,1,1,2,1,0,0,0,0,0,0,0,0,1,2,1,1,1,1],
-                [1,1,1,1,2,0,0,1,1,4,4,1,1,0,0,2,1,1,1,1],
-                [0,0,0,0,2,0,0,1,0,0,0,0,1,0,0,2,0,0,0,0],
-                [1,1,1,1,2,0,0,1,1,1,1,1,1,0,0,2,1,1,1,1],
-                [1,1,1,1,2,1,0,0,0,0,0,0,0,0,1,2,1,1,1,1],
-                [1,1,1,1,2,1,0,1,1,1,1,1,1,1,1,2,1,1,1,1],
-                [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
-                [1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1],
-                [1,3,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,3,1],
-                [1,1,2,1,2,1,2,1,1,1,1,1,1,2,1,2,1,2,1,1],
-                [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            // BASE MAP  1=wall 2=dot 3=power 4=ghost-house 0=empty
+            const BASE_MAP=[
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
+                [1,3,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,3,1],
+                [1,2,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,2,1],
+                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+                [1,2,1,1,2,1,2,1,1,1,1,1,1,1,2,1,2,1,1,2,1],
+                [1,2,2,2,2,1,2,2,2,1,1,1,2,2,2,1,2,2,2,2,1],
+                [1,1,1,1,2,1,1,0,0,1,1,1,0,0,1,1,2,1,1,1,1],
+                [1,1,1,1,2,1,0,0,4,4,4,4,4,0,0,1,2,1,1,1,1],
+                [0,0,0,0,2,0,0,4,4,0,0,0,4,4,0,0,2,0,0,0,0],
+                [1,1,1,1,2,1,0,4,4,0,0,0,4,4,0,1,2,1,1,1,1],
+                [1,1,1,1,2,1,0,0,0,0,0,0,0,0,0,1,2,1,1,1,1],
+                [1,1,1,1,2,1,0,1,1,1,1,1,1,1,0,1,2,1,1,1,1],
+                [1,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,1],
+                [1,2,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,2,1],
+                [1,3,2,1,2,2,2,2,2,2,0,2,2,2,2,2,2,1,2,3,1],
+                [1,1,2,1,2,1,2,1,1,1,1,1,1,1,2,1,2,1,2,1,1],
+                [1,2,2,2,2,1,2,2,2,1,1,1,2,2,2,1,2,2,2,2,1],
+                [1,2,1,1,1,1,1,1,2,1,1,1,2,1,1,1,1,1,1,2,1],
+                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             ];
-            let grid=MAP.map(r=>r.slice());
-            let score=0,lives=3,gameOver=false,won=false;
-            let mouthAngle=0.25,mouthDir=1;
-            let pac={x:9.5,y:14,dx:0,dy:0,nx:0,ny:0};
-            let ghosts=[
-                {x:9,y:9,dx:1,dy:0,color:'#ff0000'},
-                {x:10,y:9,dx:-1,dy:0,color:'#ffb8ff'},
-                {x:9,y:10,dx:0,dy:1,color:'#00ffff'},
-                {x:10,y:10,dx:0,dy:-1,color:'#ffb852'}
-            ];
-            let frightened=false,frightenTimer=0;
 
-            function isWall(col,row){
-                if(col<0||col>=COLS||row<0||row>=ROWS)return true;
-                return grid[row][col]===1||grid[row][col]===4;
+            // LEVELS config: ghost speed multiplier, frightened duration, bonus
+            const LEVELS_CFG=[
+                {ghostSpd:0.06, frightenMs:8000, label:'LEVEL 1'},
+                {ghostSpd:0.08, frightenMs:6000, label:'LEVEL 2 â€” FASTER!'},
+                {ghostSpd:0.10, frightenMs:4000, label:'LEVEL 3 â€” SCARY!'},
+                {ghostSpd:0.12, frightenMs:2500, label:'LEVEL 4 â€” DANGER!'},
+                {ghostSpd:0.14, frightenMs:1500, label:'LEVEL 5 â€” INSANE!'},
+            ];
+            let lvlIdx=0;
+
+            const GHOST_START=[{x:9,y:9},{x:10,y:9},{x:11,y:9},{x:10,y:10}];
+            const GHOST_COLORS=['#ff0000','#ffb8ff','#00ffff','#ffb852'];
+            const PAC_START={x:10,y:15};
+
+            let grid, pac, ghosts, score=0, lives=3, level=1;
+            let frightened=false, frightenTimer=0;
+            let gameOver=false, won=false;
+            let levelTransition=false, transitionTimer=0;
+            let mouthA=0.25, mouthDir=1;
+            let lastTs=0, running=true;
+            let rafId=null;
+
+            // INPUT â€” store desired direction
+            let inputDir={dx:0,dy:0};
+            const keyHandler=e=>{
+                if(e.key==='ArrowUp')   {inputDir={dx:0,dy:-1};e.preventDefault();}
+                if(e.key==='ArrowDown') {inputDir={dx:0,dy:1}; e.preventDefault();}
+                if(e.key==='ArrowLeft') {inputDir={dx:-1,dy:0};e.preventDefault();}
+                if(e.key==='ArrowRight'){inputDir={dx:1,dy:0}; e.preventDefault();}
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            function initLevel(){
+                grid=BASE_MAP.map(r=>r.slice());
+                pac={x:PAC_START.x, y:PAC_START.y, dx:0, dy:0, px:PAC_START.x, py:PAC_START.y};
+                ghosts=GHOST_START.map((g,i)=>({
+                    x:g.x, y:g.y, dx:i<2?1:-1, dy:0,
+                    color:GHOST_COLORS[i], scatter:i*30
+                }));
+                frightened=false; frightenTimer=0;
+                inputDir={dx:0,dy:0};
             }
-            function canMove(x,y,dx,dy){
-                let nx=x+dx,ny=y+dy;
-                return !isWall(Math.round(nx),Math.round(ny));
+
+            function isWall(c,r){
+                if(c<0||c>=COLS||r<0||r>=ROWS)return true;
+                const v=grid[r][c];
+                return v===1||v===4;
             }
-            function drawMap(){
-                for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-                    let v=grid[r][c];
-                    let px=c*CELL,py=r*CELL;
-                    if(v===1){ctx.fillStyle='#00008b';ctx.fillRect(px,py,CELL,CELL);
-                        ctx.strokeStyle='#0000ff';ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);}
-                    else if(v===2){ctx.fillStyle='#ffff00';ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,3,0,Math.PI*2);ctx.fill();}
-                    else if(v===3){ctx.fillStyle='#ffb852';ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,7,0,Math.PI*2);ctx.fill();}
+
+            // Smooth tile-by-tile movement
+            function tryMove(obj, dx, dy, spd){
+                // snap to grid when close
+                const tx=Math.round(obj.x), ty=Math.round(obj.y);
+                const aligned = Math.abs(obj.x-tx)<spd+0.1 && Math.abs(obj.y-ty)<spd+0.1;
+                if(aligned){
+                    obj.x=tx; obj.y=ty;
+                    if(!isWall(tx+dx, ty+dy)){
+                        obj.dx=dx; obj.dy=dy;
+                    }
+                    if(!isWall(tx+obj.dx, ty+obj.dy)){
+                        obj.x+=obj.dx*spd; obj.y+=obj.dy*spd;
+                    }
+                } else {
+                    obj.x+=obj.dx*spd; obj.y+=obj.dy*spd;
+                    // wrap tunnel
+                    if(obj.x<0)obj.x=COLS-1;
+                    if(obj.x>=COLS)obj.x=0;
                 }
             }
+
+            function moveGhost(g){
+                const cfg=LEVELS_CFG[Math.min(lvlIdx, LEVELS_CFG.length-1)];
+                const spd = frightened ? cfg.ghostSpd*0.5 : cfg.ghostSpd;
+                const tx=Math.round(g.x), ty=Math.round(g.y);
+                if(Math.abs(g.x-tx)<spd+0.1 && Math.abs(g.y-ty)<spd+0.1){
+                    g.x=tx; g.y=ty;
+                    const dirs=[{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+                    let valid=dirs.filter(d=>!isWall(tx+d.dx,ty+d.dy)&&!(d.dx===-g.dx&&d.dy===-g.dy));
+                    if(!valid.length) valid=dirs.filter(d=>!isWall(tx+d.dx,ty+d.dy));
+                    if(!valid.length) return;
+                    let chosen;
+                    if(frightened){
+                        chosen=valid[Math.floor(Math.random()*valid.length)];
+                    } else {
+                        chosen=valid.reduce((best,d)=>{
+                            const dist=Math.hypot(g.x+d.dx-pac.x, g.y+d.dy-pac.y);
+                            const bdist=Math.hypot(g.x+best.dx-pac.x, g.y+best.dy-pac.y);
+                            return dist<bdist?d:best;
+                        }, valid[0]);
+                    }
+                    g.dx=chosen.dx; g.dy=chosen.dy;
+                }
+                g.x+=g.dx*spd; g.y+=g.dy*spd;
+                if(g.x<0)g.x=COLS-1;
+                if(g.x>=COLS)g.x=0;
+            }
+
+            function drawCell(c,r){
+                const v=grid[r][c];
+                const px=c*CELL, py=r*CELL;
+                if(v===1){
+                    ctx.fillStyle='#00008b';
+                    ctx.fillRect(px,py,CELL,CELL);
+                    ctx.strokeStyle='#1a1aff';
+                    ctx.lineWidth=1;
+                    ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
+                } else {
+                    ctx.fillStyle='#000';
+                    ctx.fillRect(px,py,CELL,CELL);
+                    if(v===2){
+                        ctx.fillStyle='#ffdd00';
+                        ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*0.12,0,Math.PI*2);ctx.fill();
+                    } else if(v===3){
+                        ctx.fillStyle='#ffaa00';
+                        const pulse=0.22+0.07*Math.sin(Date.now()/200);
+                        ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*pulse,0,Math.PI*2);ctx.fill();
+                    }
+                }
+            }
+
             function drawPac(){
-                let cx=pac.x*CELL+CELL/2,cy=pac.y*CELL+CELL/2;
-                let angle=Math.atan2(pac.dy,pac.dx||1);
+                const cx=pac.x*CELL+CELL/2, cy=pac.y*CELL+CELL/2;
+                const ang=Math.atan2(pac.dy||0, pac.dx||1);
                 ctx.fillStyle='#ffff00';
                 ctx.beginPath();
                 ctx.moveTo(cx,cy);
-                ctx.arc(cx,cy,CELL/2-2,angle+mouthAngle*Math.PI,angle+(2-mouthAngle)*Math.PI);
-                ctx.closePath();ctx.fill();
+                ctx.arc(cx,cy,CELL/2-1, ang+mouthA*Math.PI, ang+(2-mouthA)*Math.PI);
+                ctx.closePath(); ctx.fill();
+                // eye
+                const ex=cx+Math.cos(ang+Math.PI/4)*CELL*0.28;
+                const ey=cy+Math.sin(ang+Math.PI/4)*CELL*0.28;
+                ctx.fillStyle='#000';
+                ctx.beginPath();ctx.arc(ex,ey,CELL*0.07,0,Math.PI*2);ctx.fill();
             }
-            function drawGhosts(){
-                ghosts.forEach(g=>{
-                    let cx=g.x*CELL+CELL/2,cy=g.y*CELL+CELL/2,r=CELL/2-2;
-                    ctx.fillStyle=frightened?(frightenTimer<3000&&Math.floor(Date.now()/300)%2?'#fff':'#0000cc'):g.color;
-                    ctx.beginPath();ctx.arc(cx,cy-2,r,Math.PI,0);
-                    ctx.lineTo(cx+r,cy+r);
-                    for(let i=0;i<3;i++){ctx.lineTo(cx+r-i*(2*r/3),cy+r-(i%2===0?r/2:0));}
-                    ctx.lineTo(cx-r,cy+r);ctx.closePath();ctx.fill();
-                    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx-4,cy-4,4,0,Math.PI*2);ctx.arc(cx+4,cy-4,4,0,Math.PI*2);ctx.fill();
-                    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(cx-3,cy-4,2,0,Math.PI*2);ctx.arc(cx+5,cy-4,2,0,Math.PI*2);ctx.fill();
-                });
-            }
-            function moveGhost(g){
-                let dirs=[{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
-                let valid=dirs.filter(d=>!isWall(Math.round(g.x+d.dx),Math.round(g.y+d.dy))&&!(d.dx===-g.dx&&d.dy===-g.dy));
-                if(valid.length===0)valid=dirs.filter(d=>!isWall(Math.round(g.x+d.dx),Math.round(g.y+d.dy)));
-                if(valid.length===0)return;
-                let chosen;
-                if(frightened){chosen=valid[Math.floor(Math.random()*valid.length)];}
-                else{
-                    let tx=pac.x,ty=pac.y;
-                    chosen=valid.reduce((best,d)=>{
-                        let dist=Math.hypot(g.x+d.dx-tx,g.y+d.dy-ty);
-                        let bdist=Math.hypot(g.x+best.dx-tx,g.y+best.dy-ty);
-                        return dist<bdist?d:best;
-                    },valid[0]);
+
+            function drawGhost(g){
+                const cx=g.x*CELL+CELL/2, cy=g.y*CELL+CELL/2;
+                const r=CELL/2-1;
+                const flash=frightened&&frightenTimer<2000&&Math.floor(Date.now()/250)%2===0;
+                ctx.fillStyle=frightened?(flash?'#fff':'#2222cc'):g.color;
+                // body
+                ctx.beginPath();
+                ctx.arc(cx,cy-r*0.1,r,Math.PI,0);
+                ctx.lineTo(cx+r,cy+r);
+                for(let i=3;i>=0;i--){
+                    ctx.lineTo(cx+r-i*(2*r/3), cy+r-(i%2===0?r*0.5:0));
                 }
-                g.dx=chosen.dx;g.dy=chosen.dy;
-                g.x+=g.dx*0.1;g.y+=g.dy*0.1;
-                g.x=Math.max(0,Math.min(COLS-1,g.x));
-                g.y=Math.max(0,Math.min(ROWS-1,g.y));
+                ctx.lineTo(cx-r,cy+r);
+                ctx.closePath(); ctx.fill();
+                // eyes
+                if(!frightened){
+                    ctx.fillStyle='#fff';
+                    ctx.beginPath();ctx.arc(cx-r*0.32,cy-r*0.2,r*0.28,0,Math.PI*2);ctx.fill();
+                    ctx.beginPath();ctx.arc(cx+r*0.32,cy-r*0.2,r*0.28,0,Math.PI*2);ctx.fill();
+                    ctx.fillStyle='#00f';
+                    ctx.beginPath();ctx.arc(cx-r*0.28,cy-r*0.18,r*0.15,0,Math.PI*2);ctx.fill();
+                    ctx.beginPath();ctx.arc(cx+r*0.36,cy-r*0.18,r*0.15,0,Math.PI*2);ctx.fill();
+                } else {
+                    ctx.fillStyle='#fff';
+                    ctx.font=`${CELL*0.5}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('ðŸ‘»',cx,cy+1);
+                }
             }
-            let lastTime=0;
+
             function update(ts){
-                if(gameOver||won)return;
-                let dt=ts-lastTime;lastTime=ts;
-                mouthAngle+=0.05*mouthDir;
-                if(mouthAngle>0.4||mouthAngle<0.02)mouthDir*=-1;
-                if(canMove(pac.x,pac.y,pac.nx,pac.ny)){pac.dx=pac.nx;pac.dy=pac.ny;}
-                if(canMove(pac.x,pac.y,pac.dx,pac.dy)){
-                    pac.x+=pac.dx*0.15;pac.y+=pac.dy*0.15;
-                    pac.x=(pac.x+COLS)%COLS;pac.y=(pac.y+ROWS)%ROWS;
+                if(!running) return;
+                const dt=Math.min(ts-lastTs, 50); lastTs=ts;
+
+                if(levelTransition){
+                    transitionTimer-=dt;
+                    if(transitionTimer<=0){levelTransition=false;}
+                    return;
                 }
-                let col=Math.round(pac.x),row=Math.round(pac.y);
-                if(grid[row]&&grid[row][col]===2){grid[row][col]=0;score+=10;document.getElementById('high-score').textContent=String(score).padStart(6,'0');}
-                if(grid[row]&&grid[row][col]===3){grid[row][col]=0;score+=50;frightened=true;frightenTimer=8000;document.getElementById('high-score').textContent=String(score).padStart(6,'0');}
-                if(frightened){frightenTimer-=dt;if(frightenTimer<=0)frightened=false;}
+                if(gameOver||won) return;
+
+                // mouth
+                mouthA+=0.06*mouthDir;
+                if(mouthA>0.42||mouthA<0.02) mouthDir*=-1;
+
+                // move pac
+                const PAC_SPD=0.13;
+                tryMove(pac, inputDir.dx, inputDir.dy, PAC_SPD);
+
+                // eat
+                const col=Math.round(pac.x), row=Math.round(pac.y);
+                if(row>=0&&row<ROWS&&col>=0&&col<COLS){
+                    if(grid[row][col]===2){
+                        grid[row][col]=0; score+=10;
+                        document.getElementById('high-score').textContent=String(score).padStart(6,'0');
+                    }
+                    if(grid[row][col]===3){
+                        grid[row][col]=0; score+=50;
+                        document.getElementById('high-score').textContent=String(score).padStart(6,'0');
+                        const cfg=LEVELS_CFG[Math.min(lvlIdx, LEVELS_CFG.length-1)];
+                        frightened=true; frightenTimer=cfg.frightenMs;
+                    }
+                }
+
+                // frightened timer
+                if(frightened){ frightenTimer-=dt; if(frightenTimer<=0) frightened=false; }
+
+                // move ghosts
+                ghosts.forEach(g=>moveGhost(g));
+
+                // ghost collisions
                 ghosts.forEach(g=>{
-                    if(Math.floor(ts/200)%2===0)moveGhost(g);
-                    if(Math.hypot(pac.x-g.x,pac.y-g.y)<0.8){
-                        if(frightened){score+=200;g.x=9.5;g.y=9;document.getElementById('high-score').textContent=String(score).padStart(6,'0');}
-                        else{lives--;document.getElementById('lives').textContent='♥'.repeat(Math.max(0,lives));
-                            if(lives<=0){gameOver=true;}else{pac.x=9.5;pac.y=14;pac.dx=0;pac.dy=0;}}
+                    if(Math.hypot(pac.x-g.x, pac.y-g.y)<0.75){
+                        if(frightened){
+                            score+=200;
+                            document.getElementById('high-score').textContent=String(score).padStart(6,'0');
+                            g.x=10; g.y=9; g.dx=0; g.dy=-1;
+                        } else {
+                            lives--;
+                            document.getElementById('lives').textContent='â™¥'.repeat(Math.max(0,lives));
+                            if(lives<=0){ gameOver=true; }
+                            else {
+                                pac.x=PAC_START.x; pac.y=PAC_START.y; pac.dx=0; pac.dy=0;
+                                inputDir={dx:0,dy:0};
+                                frightened=false;
+                            }
+                        }
                     }
                 });
-                if(!grid.flat().some(v=>v===2||v===3))won=true;
+
+                // level clear
+                const dotsLeft=grid.flat().filter(v=>v===2||v===3).length;
+                if(dotsLeft===0){
+                    lvlIdx++;
+                    level++;
+                    levelTransition=true;
+                    transitionTimer=2500;
+                    setTimeout(()=>initLevel(), 500);
+                }
             }
+
             function draw(){
                 ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
-                drawMap();drawPac();drawGhosts();
-                if(gameOver){
+                for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawCell(c,r);
+                drawPac();
+                ghosts.forEach(g=>drawGhost(g));
+
+                // level badge
+                ctx.fillStyle='rgba(0,0,200,0.18)';
+                ctx.font=`bold ${CELL*2}px "Press Start 2P",monospace`;
+                ctx.textAlign='center'; ctx.textBaseline='middle';
+                ctx.fillText(`L${level}`,CW/2,CH/2);
+
+                // level transition overlay
+                if(levelTransition){
                     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
-                    ctx.fillStyle='#ff0000';ctx.font=`bold ${CELL*1.3}px "Press Start 2P",monospace`;
-                    ctx.textAlign='center';ctx.fillText('GAME OVER',CW/2,CH/2-20);
-                    ctx.fillStyle='#fff';ctx.font=`${CELL*0.65}px "Press Start 2P",monospace`;
-                    ctx.fillText('SCORE: '+score,CW/2,CH/2+30);
-                    ctx.fillText('Click to Restart',CW/2,CH/2+70);
+                    ctx.fillStyle='#ffff00';
+                    ctx.font=`bold ${CELL*1.5}px "Press Start 2P",monospace`;
+                    ctx.textAlign='center'; ctx.textBaseline='middle';
+                    ctx.fillText(`LEVEL ${level}`, CW/2, CH/2-CELL);
+                    const cfg=LEVELS_CFG[Math.min(lvlIdx-1, LEVELS_CFG.length-1)];
+                    ctx.fillStyle='#00f5ff';
+                    ctx.font=`${CELL*0.6}px "Press Start 2P",monospace`;
+                    ctx.fillText(cfg?cfg.label:'', CW/2, CH/2+CELL*0.5);
+                    ctx.fillStyle='#fff';
+                    ctx.font=`${CELL*0.55}px "Press Start 2P",monospace`;
+                    ctx.fillText('SCORE: '+score, CW/2, CH/2+CELL*1.5);
                 }
-                if(won){
-                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
-                    ctx.fillStyle='#ffff00';ctx.font=`bold ${CELL*1.2}px "Press Start 2P",monospace`;
-                    ctx.textAlign='center';ctx.fillText('YOU WIN!',CW/2,CH/2-20);
-                    ctx.fillStyle='#fff';ctx.font=`${CELL*0.65}px "Press Start 2P",monospace`;
-                    ctx.fillText('SCORE: '+score,CW/2,CH/2+30);
+
+                if(gameOver){
+                    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#ff3030';
+                    ctx.font=`bold ${CELL*1.4}px "Press Start 2P",monospace`;
+                    ctx.textAlign='center'; ctx.textBaseline='middle';
+                    ctx.fillText('GAME OVER',CW/2,CH/2-CELL*1.5);
+                    ctx.fillStyle='#fff';
+                    ctx.font=`${CELL*0.6}px "Press Start 2P",monospace`;
+                    ctx.fillText(`SCORE: ${score}`,CW/2,CH/2);
+                    ctx.fillText(`LEVEL: ${level}`,CW/2,CH/2+CELL);
+                    ctx.fillStyle='#00f5ff';
+                    ctx.font=`${CELL*0.5}px "Press Start 2P",monospace`;
+                    ctx.fillText('Click to Restart',CW/2,CH/2+CELL*2.2);
                 }
             }
-            function loop(ts){draw();update(ts);requestAnimationFrame(loop);}
-            document.addEventListener('keydown',e=>{
-                if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
-                if(e.key==='ArrowUp'){pac.nx=0;pac.ny=-1;}
-                if(e.key==='ArrowDown'){pac.nx=0;pac.ny=1;}
-                if(e.key==='ArrowLeft'){pac.nx=-1;pac.ny=0;}
-                if(e.key==='ArrowRight'){pac.nx=1;pac.ny=0;}
+
+            canvas.addEventListener('click',()=>{
+                if(gameOver||won){
+                    score=0; lives=3; level=1; lvlIdx=0; gameOver=false; won=false;
+                    initLevel();
+                    document.getElementById('lives').textContent='â™¥â™¥â™¥';
+                    document.getElementById('high-score').textContent='000000';
+                }
             });
-            canvas.addEventListener('click',()=>{if(gameOver||won){grid=MAP.map(r=>r.slice());score=0;lives=3;gameOver=false;won=false;pac={x:9.5,y:14,dx:0,dy:0,nx:0,ny:0};frightened=false;}});
-            requestAnimationFrame(loop);
+
+            // Swipe support for mobile
+            let touchStartX=0, touchStartY=0;
+            canvas.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
+            canvas.addEventListener('touchend',e=>{
+                const dx=e.changedTouches[0].clientX-touchStartX;
+                const dy=e.changedTouches[0].clientY-touchStartY;
+                if(Math.abs(dx)>Math.abs(dy)){inputDir=dx>0?{dx:1,dy:0}:{dx:-1,dy:0};}
+                else{inputDir=dy>0?{dx:0,dy:1}:{dx:0,dy:-1};}
+            },{passive:true});
+
+            // Cleanup on game change
+            container._cleanup=()=>{
+                running=false;
+                document.removeEventListener('keydown',keyHandler);
+                if(rafId) cancelAnimationFrame(rafId);
+            };
+
+            initLevel();
+
+            function loop(ts){
+                if(!running) return;
+                update(ts); draw();
+                rafId=requestAnimationFrame(loop);
+            }
+            rafId=requestAnimationFrame(loop);
         }
 
-        /* =====================================================================
-           FLAPPY BIRD
-        ===================================================================== */
         function startFlappy(container, W, H) {
             const canvas=document.createElement('canvas');
             canvas.width=W;canvas.height=H;
@@ -1369,7 +1603,7 @@
                 // All balls lost
                 if(launched && balls.every(b=>!b.active)){
                     lives--;
-                    document.getElementById('lives').textContent='♥'.repeat(Math.max(0,lives));
+                    document.getElementById('lives').textContent='â™¥'.repeat(Math.max(0,lives));
                     if(lives<=0){gameOver=true;}
                     else{makeBalls();}
                 }
@@ -1553,7 +1787,7 @@
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-6,0,Math.PI*2);ctx.fill();
                     ctx.strokeStyle=p===1||p===3?'#ff6644':'#555555';ctx.lineWidth=3;
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-10,0,Math.PI*2);ctx.stroke();
-                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font=`bold ${CS*0.3}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♛',cx,cy);}
+                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font=`bold ${CS*0.3}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('â™›',cx,cy);}
                 }
                 ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,CH-28,CW,28);
                 ctx.fillStyle='#fff';ctx.font='12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1603,7 +1837,7 @@
         ===================================================================== */
         function startPoker(container, W, H) {
             container.style.cssText='background:#076324;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;box-sizing:border-box;font-family:"Press Start 2P",monospace;color:#fff;';
-            const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+            const SUITS=['â™ ','â™¥','â™¦','â™£'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
             let deck=[],playerHand=[],cpuHand=[],held=[],chips=500,bet=20,phase='bet',message='';
             function makeDeck(){deck=[];for(let s of SUITS)for(let r of RANKS)deck.push({r,s,v:RANKS.indexOf(r)});}
             function shuffle(){for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}}
@@ -1630,7 +1864,7 @@
                 container.innerHTML='';
                 let title=document.createElement('div');
                 title.style.cssText='font-size:20px;color:#ffd700;margin-bottom:10px;text-shadow:0 0 10px #ffd700;';
-                title.textContent='♠ VIDEO POKER ♠';container.appendChild(title);
+                title.textContent='â™  VIDEO POKER â™ ';container.appendChild(title);
                 let info=document.createElement('div');
                 info.style.cssText='font-size:11px;margin-bottom:8px;color:#aaffaa;';
                 info.textContent=`CHIPS: ${chips}  |  BET: ${bet}`;container.appendChild(info);
@@ -1643,8 +1877,8 @@
                 let cpuRow=document.createElement('div');cpuRow.style='display:flex;gap:8px;margin-bottom:16px;';
                 cpuHand.forEach((c,i)=>{
                     let card=document.createElement('div');
-                    card.style.cssText=`width:54px;height:80px;background:${phase==='result'?'#fff':'#1a3a6a'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${phase==='result'?'18px':'30px'};color:${(c.s==='♥'||c.s==='♦')?'#cc0000':'#000'};border:2px solid #aaa;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:default;`;
-                    card.textContent=phase==='result'?c.r+c.s:'🂠';
+                    card.style.cssText=`width:54px;height:80px;background:${phase==='result'?'#fff':'#1a3a6a'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${phase==='result'?'18px':'30px'};color:${(c.s==='â™¥'||c.s==='â™¦')?'#cc0000':'#000'};border:2px solid #aaa;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:default;`;
+                    card.textContent=phase==='result'?c.r+c.s:'ðŸ‚ ';
                     cpuRow.appendChild(card);
                 });
                 container.appendChild(cpuRow);
@@ -1655,7 +1889,7 @@
                 playerHand.forEach((c,i)=>{
                     let card=document.createElement('div');
                     let isHeld=held.includes(i);
-                    card.style.cssText=`width:54px;height:80px;background:#fff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;color:${(c.s==='♥'||c.s==='♦')?'#cc0000':'#000'};border:3px solid ${isHeld?'#ffd700':'#aaa'};box-shadow:${isHeld?'0 0 12px #ffd700':'0 2px 8px rgba(0,0,0,0.4)'};cursor:${phase==='draw'?'pointer':'default'};transform:${isHeld?'translateY(-8px)':'none'};transition:all 0.2s;`;
+                    card.style.cssText=`width:54px;height:80px;background:#fff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;color:${(c.s==='â™¥'||c.s==='â™¦')?'#cc0000':'#000'};border:3px solid ${isHeld?'#ffd700':'#aaa'};box-shadow:${isHeld?'0 0 12px #ffd700':'0 2px 8px rgba(0,0,0,0.4)'};cursor:${phase==='draw'?'pointer':'default'};transform:${isHeld?'translateY(-8px)':'none'};transition:all 0.2s;`;
                     card.innerHTML=`<div>${c.r}</div><div style="font-size:22px">${c.s}</div>`;
                     if(phase==='draw')card.onclick=()=>{
                         let idx=held.indexOf(i);if(idx>=0)held.splice(idx,1);else held.push(i);render();
@@ -1779,7 +2013,7 @@
             secretItem.className = 'game-item secret-game';
             secretItem.setAttribute('data-game', 'secret');
             secretItem.innerHTML = `
-                <span class="game-item-icon">🌟</span>
+                <span class="game-item-icon">ðŸŒŸ</span>
                 <span class="game-item-name">SPACE INVADERS</span>
                 <span class="game-item-tagline">Defend Earth!</span>
             `;
@@ -1789,14 +2023,14 @@
             
             GAMES.secret = {
                 name: 'SNAKE',
-                controls: '► Arrow Keys to Move ► Eat Food ► Don\'t Hit Yourself'
+                controls: 'â–º Arrow Keys to Move â–º Eat Food â–º Don\'t Hit Yourself'
             };
         }
 
         // ===== SOUND TOGGLE =====
         document.getElementById('sound-toggle').addEventListener('click', (e) => {
             soundEnabled = !soundEnabled;
-            e.target.textContent = soundEnabled ? '🔊 ON' : '🔇 OFF';
+            e.target.textContent = soundEnabled ? 'ðŸ”Š ON' : 'ðŸ”‡ OFF';
             e.target.classList.toggle('muted');
         });
 
@@ -1834,6 +2068,49 @@
             playSelectSound();
         }
         
+        // ===== FULLSCREEN =====
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            const frame = document.getElementById('game-frame');
+            if (!document.fullscreenElement) {
+                (frame.requestFullscreen || frame.webkitRequestFullscreen || frame.mozRequestFullScreen).call(frame);
+                document.getElementById('fullscreen-btn').textContent = '✕';
+            } else {
+                (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+                document.getElementById('fullscreen-btn').textContent = '⛶';
+            }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement)
+                document.getElementById('fullscreen-btn').textContent = '⛶';
+        });
+
+        // Re-add fullscreen btn after each game load (since innerHTML is cleared)
+        const _origLoad = loadGame;
+        // Patch: after any innerHTML clear, re-inject fullscreen btn
+        const _origSelectGame = selectGame;
+        function selectGame(gameKey) {
+            _origSelectGame(gameKey);
+            setTimeout(() => {
+                const frame = document.getElementById('game-frame');
+                if (!frame.querySelector('.fullscreen-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'fullscreen-btn'; btn.id = 'fullscreen-btn';
+                    btn.title = 'Fullscreen'; btn.textContent = '⛶';
+                    btn.style.cssText = 'position:absolute;top:12px;right:14px;z-index:99;background:rgba(0,0,0,0.7);border:2px solid #00f5ff;color:#00f5ff;font-size:18px;width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #00f5ff;';
+                    btn.onclick = () => {
+                        if (!document.fullscreenElement) {
+                            (frame.requestFullscreen||frame.webkitRequestFullscreen||frame.mozRequestFullScreen).call(frame);
+                            btn.textContent='✕';
+                        } else {
+                            (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+                            btn.textContent='⛶';
+                        }
+                    };
+                    frame.appendChild(btn);
+                }
+            }, 50);
+        }
+
         // ===== INITIALIZE =====
         loadScores();
         
@@ -1875,13 +2152,13 @@
                 document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
                 document.getElementById('game-frame').innerHTML = `
                     <div class="insert-coin">
-                        <div class="arcade-cabinet">🕹️</div>
+                        <div class="arcade-cabinet">ðŸ•¹ï¸</div>
                         <div class="insert-coin-text">INSERT COIN</div>
                         <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
                     </div>
                 `;
                 document.getElementById('game-title').textContent = 'ARCADE ZONE';
-                document.getElementById('controls-text').textContent = '► Use Arrow Keys or Mouse to Play\n► ESC to Return to Menu\n► Konami Code: ↑↑↓↓←→←→BA';
+                document.getElementById('controls-text').textContent = 'â–º Use Arrow Keys or Mouse to Play\nâ–º ESC to Return to Menu\nâ–º Konami Code: â†‘â†‘â†“â†“â†â†’â†â†’BA';
             }
         });
     </script>

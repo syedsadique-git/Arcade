@@ -333,7 +333,7 @@
         }
 
         .game-item.active .game-item-tagline::before {
-            content: 'â–º ';
+            content: '► ';
             color: var(--neon-yellow);
             animation: blink 0.8s ease-in-out infinite;
         }
@@ -709,10 +709,10 @@
 <body>
     <!-- ===== HEADER ===== -->
     <header class="header">
-        <div class="logo">â–ˆâ–€â–€ ARCADE</div>
+        <div class="logo">█▀▀ ARCADE</div>
         <div class="marquee-container">
             <div class="marquee-text">
-                WELCOME TO THE ARCADE â˜… INSERT COIN TO PLAY â˜… HIGH SCORES UPDATED DAILY â˜… WELCOME TO THE ARCADE â˜… INSERT COIN TO PLAY â˜…
+                WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★ HIGH SCORES UPDATED DAILY ★ WELCOME TO THE ARCADE ★ INSERT COIN TO PLAY ★
             </div>
         </div>
         <div class="header-right">
@@ -724,7 +724,7 @@
                 <span class="coin-icon"></span>
                 <span id="coin-count">99</span>
             </div>
-            <button class="sound-toggle" id="sound-toggle">ðŸ”Š ON</button>
+            <button class="sound-toggle" id="sound-toggle">🔊 ON</button>
         </div>
     </header>
 
@@ -736,27 +736,27 @@
 
             <div class="game-menu" id="game-menu">
                 <div class="game-item" data-game="pacman" data-tagline="Eat dots. Dodge ghosts.">
-                    <span class="game-item-icon">ðŸŸ¡</span>
+                    <span class="game-item-icon">🟡</span>
                     <span class="game-item-name">PAC-MAN</span>
                     <span class="game-item-tagline">Eat dots. Dodge ghosts.</span>
                 </div>
                 <div class="game-item" data-game="flappy" data-tagline="Flap through the pipes.">
-                    <span class="game-item-icon">ðŸ¦</span>
+                    <span class="game-item-icon">🐦</span>
                     <span class="game-item-name">FLAPPY BIRD</span>
                     <span class="game-item-tagline">Flap through the pipes.</span>
                 </div>
                 <div class="game-item" data-game="arkanoid" data-tagline="Bounce, crash, destroy!">
-                    <span class="game-item-icon">ðŸ§±</span>
+                    <span class="game-item-icon">🧱</span>
                     <span class="game-item-name">ARKANOID</span>
                     <span class="game-item-tagline">Bounce, crash, destroy!</span>
                 </div>
                 <div class="game-item" data-game="checkers" data-tagline="King me, baby.">
-                    <span class="game-item-icon">â™Ÿï¸</span>
+                    <span class="game-item-icon">♟️</span>
                     <span class="game-item-name">CHECKERS</span>
                     <span class="game-item-tagline">King me, baby.</span>
                 </div>
                 <div class="game-item" data-game="poker" data-tagline="All in, all night.">
-                    <span class="game-item-icon">ðŸƒ</span>
+                    <span class="game-item-icon">🃏</span>
                     <span class="game-item-name">POKER</span>
                     <span class="game-item-tagline">All in, all night.</span>
                 </div>
@@ -766,9 +766,9 @@
             <div class="difficulty-selector">
                 <div class="difficulty-header">DIFFICULTY</div>
                 <div class="difficulty-buttons">
-                    <button class="difficulty-btn active" data-difficulty="normal">ðŸ”· NORMAL</button>
-                    <button class="difficulty-btn" data-difficulty="easy">ðŸŸ© EASY</button>
-                    <button class="difficulty-btn" data-difficulty="hard">ðŸ”´ HARD</button>
+                    <button class="difficulty-btn active" data-difficulty="normal">🔷 NORMAL</button>
+                    <button class="difficulty-btn" data-difficulty="easy">🟩 EASY</button>
+                    <button class="difficulty-btn" data-difficulty="hard">🔴 HARD</button>
                 </div>
                 <div class="difficulty-multiplier" id="difficulty-multiplier">1.0x MULTIPLIER</div>
             </div>
@@ -795,7 +795,7 @@
                     </div>
                     <div class="stat-item lives-display">
                         <span>LIVES:</span>
-                        <span id="lives">â™¥â™¥â™¥</span>
+                        <span id="lives">♥♥♥</span>
                     </div>
                 </div>
             </div>
@@ -805,15 +805,15 @@
                 <div class="game-frame" id="game-frame">
                     <button class="fullscreen-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
                     <div class="insert-coin">
-                        <div class="arcade-cabinet">ðŸ•¹ï¸</div>
+                        <div class="arcade-cabinet">🕹️</div>
                         <div class="insert-coin-text">INSERT COIN</div>
                         <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
                     </div>
                 </div>
                 <div class="game-controls" id="controls-text">
-                    â–º Use Arrow Keys or Mouse to Play<br>
-                    â–º ESC to Return to Menu<br>
-                    â–º Konami Code: â†‘â†‘â†“â†“â†â†’â†â†’BA
+                    ► Use Arrow Keys or Mouse to Play<br>
+                    ► ESC to Return to Menu<br>
+                    ► Konami Code: ↑↑↓↓←→←→BA
                 </div>
             </div>
         </main>
@@ -822,7 +822,7 @@
     <!-- ===== FOOTER ===== -->
     <footer class="footer">
         <div class="footer-text">
-            Â© ARCADE ZONE â€” ALL RIGHTS RESERVED â€” PLAY RESPONSIBLY <span class="cursor"></span>
+            © ARCADE ZONE — ALL RIGHTS RESERVED — PLAY RESPONSIBLY <span class="cursor"></span>
         </div>
     </footer>
 
@@ -834,11 +834,11 @@
     <script>
         // ===== STATE & CONFIG =====
         const GAMES = {
-            pacman:   { name: 'PAC-MAN',     controls: 'â–º Arrow Keys to Move â–º Eat Dots and Power Pellets â–º Avoid Ghosts' },
-            flappy:   { name: 'FLAPPY BIRD',  controls: 'â–º CLICK or SPACE to Flap â–º Avoid Pipes â–º Survive as Long as Possible' },
-            arkanoid: { name: 'ARKANOID',     controls: 'â–º Mouse / Arrow Keys to Move Paddle â–º Bounce Ball to Destroy Bricks â–º Don\'t Let Ball Fall' },
-            checkers: { name: 'CHECKERS',     controls: 'â–º CLICK to Select Piece â–º CLICK destination to Move â–º Jump to Capture â–º Reach far end to Crown' },
-            poker:    { name: 'POKER',        controls: 'â–º Click BET / CALL / FOLD â–º Beat the Dealer â–º Best hand wins' }
+            pacman:   { name: 'PAC-MAN',     controls: '► Arrow Keys to Move ► Eat Dots and Power Pellets ► Avoid Ghosts' },
+            flappy:   { name: 'FLAPPY BIRD',  controls: '► CLICK or SPACE to Flap ► Avoid Pipes ► Survive as Long as Possible' },
+            arkanoid: { name: 'ARKANOID',     controls: '► Mouse / Arrow Keys to Move Paddle ► Bounce Ball to Destroy Bricks ► Don\'t Let Ball Fall' },
+            checkers: { name: 'CHECKERS',     controls: '► CLICK to Select Piece ► CLICK destination to Move ► Jump to Capture ► Reach far end to Crown' },
+            poker:    { name: 'POKER',        controls: '► Click BET / CALL / FOLD ► Beat the Dealer ► Best hand wins' }
         };
 
         let currentGame = null;
@@ -1008,7 +1008,7 @@
         }
 
         /* =====================================================================
-           PAC-MAN â€” Fixed + Levels + Proper Movement
+           PAC-MAN — Fixed + Levels + Proper Movement
         ===================================================================== */
         function startPacman(container, W, H) {
             const COLS=21, ROWS=21;
@@ -1053,10 +1053,10 @@
             // LEVELS config: ghost speed multiplier, frightened duration, bonus
             const LEVELS_CFG=[
                 {ghostSpd:0.06, frightenMs:8000, label:'LEVEL 1'},
-                {ghostSpd:0.08, frightenMs:6000, label:'LEVEL 2 â€” FASTER!'},
-                {ghostSpd:0.10, frightenMs:4000, label:'LEVEL 3 â€” SCARY!'},
-                {ghostSpd:0.12, frightenMs:2500, label:'LEVEL 4 â€” DANGER!'},
-                {ghostSpd:0.14, frightenMs:1500, label:'LEVEL 5 â€” INSANE!'},
+                {ghostSpd:0.08, frightenMs:6000, label:'LEVEL 2 — FASTER!'},
+                {ghostSpd:0.10, frightenMs:4000, label:'LEVEL 3 — SCARY!'},
+                {ghostSpd:0.12, frightenMs:2500, label:'LEVEL 4 — DANGER!'},
+                {ghostSpd:0.14, frightenMs:1500, label:'LEVEL 5 — INSANE!'},
             ];
             let lvlIdx=0;
 
@@ -1072,7 +1072,7 @@
             let lastTs=0, running=true;
             let rafId=null;
 
-            // INPUT â€” store desired direction
+            // INPUT — store desired direction
             let inputDir={dx:0,dy:0};
             const keyHandler=e=>{
                 if(e.key==='ArrowUp')   {inputDir={dx:0,dy:-1};e.preventDefault();}
@@ -1210,7 +1210,7 @@
                 } else {
                     ctx.fillStyle='#fff';
                     ctx.font=`${CELL*0.5}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('ðŸ‘»',cx,cy+1);
+                    ctx.fillText('👻',cx,cy+1);
                 }
             }
 
@@ -1263,7 +1263,7 @@
                             g.x=10; g.y=9; g.dx=0; g.dy=-1;
                         } else {
                             lives--;
-                            document.getElementById('lives').textContent='â™¥'.repeat(Math.max(0,lives));
+                            document.getElementById('lives').textContent='♥'.repeat(Math.max(0,lives));
                             if(lives<=0){ gameOver=true; }
                             else {
                                 pac.x=PAC_START.x; pac.y=PAC_START.y; pac.dx=0; pac.dy=0;
@@ -1333,7 +1333,7 @@
                 if(gameOver||won){
                     score=0; lives=3; level=1; lvlIdx=0; gameOver=false; won=false;
                     initLevel();
-                    document.getElementById('lives').textContent='â™¥â™¥â™¥';
+                    document.getElementById('lives').textContent='♥♥♥';
                     document.getElementById('high-score').textContent='000000';
                 }
             });
@@ -1603,7 +1603,7 @@
                 // All balls lost
                 if(launched && balls.every(b=>!b.active)){
                     lives--;
-                    document.getElementById('lives').textContent='â™¥'.repeat(Math.max(0,lives));
+                    document.getElementById('lives').textContent='♥'.repeat(Math.max(0,lives));
                     if(lives<=0){gameOver=true;}
                     else{makeBalls();}
                 }
@@ -1787,7 +1787,7 @@
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-6,0,Math.PI*2);ctx.fill();
                     ctx.strokeStyle=p===1||p===3?'#ff6644':'#555555';ctx.lineWidth=3;
                     ctx.beginPath();ctx.arc(cx,cy,CS/2-10,0,Math.PI*2);ctx.stroke();
-                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font=`bold ${CS*0.3}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('â™›',cx,cy);}
+                    if(p===3||p===4){ctx.fillStyle='gold';ctx.font=`bold ${CS*0.3}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♛',cx,cy);}
                 }
                 ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,CH-28,CW,28);
                 ctx.fillStyle='#fff';ctx.font='12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1837,7 +1837,7 @@
         ===================================================================== */
         function startPoker(container, W, H) {
             container.style.cssText='background:#076324;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;box-sizing:border-box;font-family:"Press Start 2P",monospace;color:#fff;';
-            const SUITS=['â™ ','â™¥','â™¦','â™£'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+            const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
             let deck=[],playerHand=[],cpuHand=[],held=[],chips=500,bet=20,phase='bet',message='';
             function makeDeck(){deck=[];for(let s of SUITS)for(let r of RANKS)deck.push({r,s,v:RANKS.indexOf(r)});}
             function shuffle(){for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}}
@@ -1864,7 +1864,7 @@
                 container.innerHTML='';
                 let title=document.createElement('div');
                 title.style.cssText='font-size:20px;color:#ffd700;margin-bottom:10px;text-shadow:0 0 10px #ffd700;';
-                title.textContent='â™  VIDEO POKER â™ ';container.appendChild(title);
+                title.textContent='♠ VIDEO POKER ♠';container.appendChild(title);
                 let info=document.createElement('div');
                 info.style.cssText='font-size:11px;margin-bottom:8px;color:#aaffaa;';
                 info.textContent=`CHIPS: ${chips}  |  BET: ${bet}`;container.appendChild(info);
@@ -1877,8 +1877,8 @@
                 let cpuRow=document.createElement('div');cpuRow.style='display:flex;gap:8px;margin-bottom:16px;';
                 cpuHand.forEach((c,i)=>{
                     let card=document.createElement('div');
-                    card.style.cssText=`width:54px;height:80px;background:${phase==='result'?'#fff':'#1a3a6a'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${phase==='result'?'18px':'30px'};color:${(c.s==='â™¥'||c.s==='â™¦')?'#cc0000':'#000'};border:2px solid #aaa;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:default;`;
-                    card.textContent=phase==='result'?c.r+c.s:'ðŸ‚ ';
+                    card.style.cssText=`width:54px;height:80px;background:${phase==='result'?'#fff':'#1a3a6a'};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${phase==='result'?'18px':'30px'};color:${(c.s==='♥'||c.s==='♦')?'#cc0000':'#000'};border:2px solid #aaa;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:default;`;
+                    card.textContent=phase==='result'?c.r+c.s:'🂠';
                     cpuRow.appendChild(card);
                 });
                 container.appendChild(cpuRow);
@@ -1889,7 +1889,7 @@
                 playerHand.forEach((c,i)=>{
                     let card=document.createElement('div');
                     let isHeld=held.includes(i);
-                    card.style.cssText=`width:54px;height:80px;background:#fff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;color:${(c.s==='â™¥'||c.s==='â™¦')?'#cc0000':'#000'};border:3px solid ${isHeld?'#ffd700':'#aaa'};box-shadow:${isHeld?'0 0 12px #ffd700':'0 2px 8px rgba(0,0,0,0.4)'};cursor:${phase==='draw'?'pointer':'default'};transform:${isHeld?'translateY(-8px)':'none'};transition:all 0.2s;`;
+                    card.style.cssText=`width:54px;height:80px;background:#fff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;color:${(c.s==='♥'||c.s==='♦')?'#cc0000':'#000'};border:3px solid ${isHeld?'#ffd700':'#aaa'};box-shadow:${isHeld?'0 0 12px #ffd700':'0 2px 8px rgba(0,0,0,0.4)'};cursor:${phase==='draw'?'pointer':'default'};transform:${isHeld?'translateY(-8px)':'none'};transition:all 0.2s;`;
                     card.innerHTML=`<div>${c.r}</div><div style="font-size:22px">${c.s}</div>`;
                     if(phase==='draw')card.onclick=()=>{
                         let idx=held.indexOf(i);if(idx>=0)held.splice(idx,1);else held.push(i);render();
@@ -2013,7 +2013,7 @@
             secretItem.className = 'game-item secret-game';
             secretItem.setAttribute('data-game', 'secret');
             secretItem.innerHTML = `
-                <span class="game-item-icon">ðŸŒŸ</span>
+                <span class="game-item-icon">🌟</span>
                 <span class="game-item-name">SPACE INVADERS</span>
                 <span class="game-item-tagline">Defend Earth!</span>
             `;
@@ -2023,14 +2023,14 @@
             
             GAMES.secret = {
                 name: 'SNAKE',
-                controls: 'â–º Arrow Keys to Move â–º Eat Food â–º Don\'t Hit Yourself'
+                controls: '► Arrow Keys to Move ► Eat Food ► Don\'t Hit Yourself'
             };
         }
 
         // ===== SOUND TOGGLE =====
         document.getElementById('sound-toggle').addEventListener('click', (e) => {
             soundEnabled = !soundEnabled;
-            e.target.textContent = soundEnabled ? 'ðŸ”Š ON' : 'ðŸ”‡ OFF';
+            e.target.textContent = soundEnabled ? '🔊 ON' : '🔇 OFF';
             e.target.classList.toggle('muted');
         });
 
@@ -2152,13 +2152,13 @@
                 document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
                 document.getElementById('game-frame').innerHTML = `
                     <div class="insert-coin">
-                        <div class="arcade-cabinet">ðŸ•¹ï¸</div>
+                        <div class="arcade-cabinet">🕹️</div>
                         <div class="insert-coin-text">INSERT COIN</div>
                         <div class="insert-coin-subtext">SELECT A GAME TO PLAY</div>
                     </div>
                 `;
                 document.getElementById('game-title').textContent = 'ARCADE ZONE';
-                document.getElementById('controls-text').textContent = 'â–º Use Arrow Keys or Mouse to Play\nâ–º ESC to Return to Menu\nâ–º Konami Code: â†‘â†‘â†“â†“â†â†’â†â†’BA';
+                document.getElementById('controls-text').textContent = '► Use Arrow Keys or Mouse to Play\n► ESC to Return to Menu\n► Konami Code: ↑↑↓↓←→←→BA';
             }
         });
     </script>

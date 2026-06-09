@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1005,6 +1005,24 @@
             else if (gameKey === 'checkers') startCheckers(gameFrame, gameW, gameH);
             else if (gameKey === 'poker')    startPoker(gameFrame, gameW, gameH);
             else if (gameKey === 'secret')   startSecret(gameFrame, gameW, gameH);
+
+            // Re-inject fullscreen btn (since innerHTML was cleared)
+            if (!gameFrame.querySelector('.fullscreen-btn')) {
+                const btn = document.createElement('button');
+                btn.className = 'fullscreen-btn'; btn.id = 'fullscreen-btn';
+                btn.title = 'Fullscreen'; btn.textContent = '⛶';
+                btn.style.cssText = 'position:absolute;top:12px;right:14px;z-index:99;background:rgba(0,0,0,0.7);border:2px solid #00f5ff;color:#00f5ff;font-size:18px;width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #00f5ff;';
+                btn.onclick = () => {
+                    if (!document.fullscreenElement) {
+                        (gameFrame.requestFullscreen||gameFrame.webkitRequestFullscreen||gameFrame.mozRequestFullScreen).call(gameFrame);
+                        btn.textContent='✕';
+                    } else {
+                        (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+                        btn.textContent='⛶';
+                    }
+                };
+                gameFrame.appendChild(btn);
+            }
         }
 
         /* =====================================================================
@@ -2084,32 +2102,7 @@
                 document.getElementById('fullscreen-btn').textContent = '⛶';
         });
 
-        // Re-add fullscreen btn after each game load (since innerHTML is cleared)
-        const _origLoad = loadGame;
-        // Patch: after any innerHTML clear, re-inject fullscreen btn
-        const _origSelectGame = selectGame;
-        function selectGame(gameKey) {
-            _origSelectGame(gameKey);
-            setTimeout(() => {
-                const frame = document.getElementById('game-frame');
-                if (!frame.querySelector('.fullscreen-btn')) {
-                    const btn = document.createElement('button');
-                    btn.className = 'fullscreen-btn'; btn.id = 'fullscreen-btn';
-                    btn.title = 'Fullscreen'; btn.textContent = '⛶';
-                    btn.style.cssText = 'position:absolute;top:12px;right:14px;z-index:99;background:rgba(0,0,0,0.7);border:2px solid #00f5ff;color:#00f5ff;font-size:18px;width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #00f5ff;';
-                    btn.onclick = () => {
-                        if (!document.fullscreenElement) {
-                            (frame.requestFullscreen||frame.webkitRequestFullscreen||frame.mozRequestFullScreen).call(frame);
-                            btn.textContent='✕';
-                        } else {
-                            (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
-                            btn.textContent='⛶';
-                        }
-                    };
-                    frame.appendChild(btn);
-                }
-            }, 50);
-        }
+
 
         // ===== INITIALIZE =====
         loadScores();

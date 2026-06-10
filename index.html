@@ -3855,7 +3855,7 @@ function startPoker(container, W, H) {
                     if(e.behavior==='snake'){
                         e.x-=e.speed;
                         e.frame+=0.15;
-                        e.y=e.groundY+Math.sin(e.frame*2)*20;
+                        e.y=e.groundY+Math.sin(e.frame*2)*12;
                     }
                     // Touch player
                     if(player.x<e.x+e.w&&player.x+player.w>e.x&&player.y<e.y+e.h&&player.y+player.h>e.y){
@@ -3972,12 +3972,12 @@ function startPoker(container, W, H) {
                     let ex=e.x-cx;
                     if(ex<-50||ex>W+50)continue;
                     if(e.behavior==='snake'){
-                        // Segmented snake body
+                        // Segmented snake body - trail behind head (to the right)
                         for(let s=3;s>=0;s--){
-                            let sx=ex-s*5;
+                            let sx=ex+e.w-s*6;
                             let sy=e.y+Math.sin((e.frame*2)+s*0.8)*5;
-                            ctx.fillStyle=s===0?'#118822':s===1?'#1a9933':'#22aa44';
-                            ctx.fillRect(sx,sy,e.w*0.7,e.h*0.8);
+                            ctx.fillStyle=s===0?'#22aa44':s===1?'#1a9933':'#118822';
+                            ctx.fillRect(sx,sy,e.w*0.6,e.h*0.8);
                         }
                         // Head
                         ctx.fillStyle='#0d6618';

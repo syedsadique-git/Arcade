@@ -880,6 +880,21 @@
             osc.stop(time + 0.1);
         }
 
+        function sfxEatApple() {
+            if (!soundEnabled) return;
+            const time = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.setValueAtTime(520, time);
+            osc.frequency.setValueAtTime(780, time + 0.08);
+            gain.gain.setValueAtTime(0.25, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+            osc.start(time);
+            osc.stop(time + 0.15);
+        }
+
         function playSelectSound() {
             if (!soundEnabled) return;
             const time = audioContext.currentTime;
@@ -2714,7 +2729,7 @@ function startPoker(container, W, H) {
                 if(snake.some(s=>s.x===head.x&&s.y===head.y)){gameOver=true;return;}
                 snake.unshift(head);
                 if(head.x===food.x&&head.y===food.y){
-                    score+=10;
+                    score+=10;sfxEatApple();
                     document.getElementById('high-score').textContent=String(score).padStart(6,'0');
                     placeFood();
                 } else snake.pop();

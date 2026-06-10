@@ -3138,7 +3138,7 @@ function startPoker(container, W, H) {
             }
 
             function executePassing(){
-                let passFrom=[[1,2,3],[3,2,1],[2,3,1]];
+                let passFrom=[[1,2,3,0],[3,0,1,2],[2,3,0,1]];
                 let dir=passFrom[passDir];
                 let passed=[[],[],[],[]];
                 passed[0]=[...passSelection];
@@ -3563,7 +3563,10 @@ function startPoker(container, W, H) {
                     if(mx>=pbx&&mx<=pbx+120&&my>=pby&&my<=pby+36){
                         sfxButtonClick();
                         animating=true;draw();
-                        setTimeout(function(){sfxPassCards();executePassing();draw();},300);
+                        setTimeout(function(){
+                            try{sfxPassCards();executePassing();}catch(e){console.error(e);animating=false;}
+                            draw();
+                        },300);
                         return;
                     }
                 }

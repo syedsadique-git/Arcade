@@ -3605,8 +3605,8 @@ function startPoker(container, W, H) {
             }
 
             function spawnEnemy(){
-                let types=['grunt','runner','turret','jumper'];
-                let weights=[40,25,20,15];
+                let types=['grunt','runner','turret','jumper','snake'];
+                let weights=[30,20,15,15,20];
                 let total=weights.reduce((a,b)=>a+b,0);
                 let r=Math.random()*total;
                 let type='grunt';
@@ -3627,6 +3627,8 @@ function startPoker(container, W, H) {
                         ey=groundY-20;ew=22;eh=20;hp=3;speed=0;color='#888888';behavior='shoot';break;
                     case'jumper':
                         ey=groundY-28;ew=18;eh=28;hp=2;speed=1;color='#cc44cc';behavior='jump';break;
+                    case'snake':
+                        ey=groundY-18;ew=24;eh=14;hp=2;speed=1.5;color='#22cc44';behavior='snake';break;
                 }
                 enemies.push({x:ex,y:ey,w:ew,h:eh,hp,type,speed,color,behavior,shootTimer:60+Math.random()*60,frame:0,jumpTimer:0,groundY:ey});
             }
@@ -3701,6 +3703,7 @@ function startPoker(container, W, H) {
                 else if(pu.type==='laser'){weapon='laser';weaponTimer=600;}
                 else if(pu.type==='machine'){weapon='machine';weaponTimer=600;}
                 else if(pu.type==='life'){lives++;invincible=60;}
+                else if(pu.type==='apple'){score+=500;invincible=60;}
                 score+=100;
                 explosion(pu.x,pu.y,10,'#00ff00');
             }
@@ -3775,8 +3778,8 @@ function startPoker(container, W, H) {
                                 combo++;comboTimer=60;
                                 score+=pts*Math.min(combo,5);
                                 if(Math.random()<0.08){
-                                    let types=['spread','laser','machine','life'];
-                                    let weights=[30,25,25,20];
+                                    let types=['spread','laser','machine','life','apple'];
+                                    let weights=[25,20,20,15,20];
                                     let r=Math.random()*100,acc=0,ptype='spread';
                                     for(let k=0;k<types.length;k++){acc+=weights[k];if(r<acc){ptype=types[k];break;}}
                                     powerups.push({x:e.x,y:e.y,w:16,h:16,type:ptype,vy:-3,life:180,frame:0});
@@ -3848,6 +3851,11 @@ function startPoker(container, W, H) {
                         if(e.shootTimer<=0&&edx>0&&edx<W){
                             enemyShoot(e);e.shootTimer=60+Math.random()*40;
                         }
+                    }
+                    if(e.behavior==='snake'){
+                        e.x-=e.speed;
+                        e.frame+=0.15;
+                        e.y=e.groundY+Math.sin(e.frame*2)*20;
                     }
                     // Touch player
                     if(player.x<e.x+e.w&&player.x+player.w>e.x&&player.y<e.y+e.h&&player.y+player.h>e.y){
@@ -3963,13 +3971,33 @@ function startPoker(container, W, H) {
                 for(let e of enemies){
                     let ex=e.x-cx;
                     if(ex<-50||ex>W+50)continue;
-                    ctx.fillStyle=e.color;
-                    if(e.behavior==='turret'){
+                    if(e.behavior==='snake'){
+                        // Segmented snake body
+                        for(let s=3;s>=0;s--){
+                            let sx=ex-s*5;
+                            let sy=e.y+Math.sin((e.frame*2)+s*0.8)*5;
+                            ctx.fillStyle=s===0?'#118822':s===1?'#1a9933':'#22aa44';
+                            ctx.fillRect(sx,sy,e.w*0.7,e.h*0.8);
+                        }
+                        // Head
+                        ctx.fillStyle='#0d6618';
+                        ctx.fillRect(ex+e.w*0.5,e.y-2,e.w*0.5,e.h+4);
+                        // Eyes
+                        ctx.fillStyle='#ff0';
+                        ctx.fillRect(ex+e.w-2,e.y+1,3,3);
+                        ctx.fillRect(ex+e.w-2,e.y+e.h-5,3,3);
+                        // Tongue
+                        ctx.fillStyle='#ff3333';
+                        let tongue=Math.sin(e.frame*4)*3;
+                        ctx.fillRect(ex+e.w+1,e.y+e.h/2-1,4+ tongue,2);
+                    } else if(e.behavior==='turret'){
+                        ctx.fillStyle=e.color;
                         ctx.fillRect(ex,e.y,e.w,e.h);
                         ctx.fillStyle='#666';
                         ctx.fillRect(ex+e.w/2-3,e.y-8,6,8);
                     } else {
                         // Body
+                        ctx.fillStyle=e.color;
                         ctx.fillRect(ex+2,e.y+4,e.w-4,e.h-4);
                         // Head
                         ctx.fillStyle='#ddd';
@@ -4065,14 +4093,35 @@ function startPoker(container, W, H) {
                     let px=p.x-cx;
                     let alpha=p.life<30?(Math.sin(Date.now()*0.02)>0?1:0.3):1;
                     ctx.globalAlpha=alpha;
-                    let colors={spread:'#ff4400',laser:'#00ffff',machine:'#ffff00',life:'#00ff00'};
-                    ctx.fillStyle=colors[p.type]||'#fff';
-                    ctx.fillRect(px,p.y,p.w,p.h);
-                    ctx.fillStyle='#fff';
-                    ctx.font='bold 10px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.textBaseline='middle';
-                    let labels={spread:'S',laser:'L',machine:'M',life:'♥'};
-                    ctx.fillText(labels[p.type],px+p.w/2,p.y+p.h/2);
+                    if(p.type==='apple'){
+                        // Apple shape
+                        ctx.fillStyle='#ff2222';
+                        ctx.beginPath();
+                        ctx.arc(px+p.w/2,p.y+p.h/2+1,p.w/2-1,0,Math.PI*2);
+                        ctx.fill();
+                        // Stem
+                        ctx.fillStyle='#553300';
+                        ctx.fillRect(px+p.w/2-1,p.y-1,2,5);
+                        // Leaf
+                        ctx.fillStyle='#22aa22';
+                        ctx.beginPath();
+                        ctx.ellipse(px+p.w/2+3,p.y,4,2,0.3,0,Math.PI*2);
+                        ctx.fill();
+                        // Shine
+                        ctx.fillStyle='rgba(255,255,255,0.4)';
+                        ctx.beginPath();
+                        ctx.arc(px+p.w/2-2,p.y+p.h/2-2,2,0,Math.PI*2);
+                        ctx.fill();
+                    } else {
+                        let colors={spread:'#ff4400',laser:'#00ffff',machine:'#ffff00',life:'#00ff00'};
+                        ctx.fillStyle=colors[p.type]||'#fff';
+                        ctx.fillRect(px,p.y,p.w,p.h);
+                        ctx.fillStyle='#fff';
+                        ctx.font='bold 10px "Press Start 2P",monospace';
+                        ctx.textAlign='center';ctx.textBaseline='middle';
+                        let labels={spread:'S',laser:'L',machine:'M',life:'♥'};
+                        ctx.fillText(labels[p.type],px+p.w/2,p.y+p.h/2);
+                    }
                     ctx.globalAlpha=1;
                 }
 

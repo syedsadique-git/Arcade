@@ -3863,7 +3863,7 @@ function startPoker(container, W, H) {
                     boss.shootTimer--;
                     if(boss.shootTimer<=0){
                         for(let a=-0.4;a<=0.4;a+=0.2){
-                            enemyBullets.push({x:boss.x,y:boss.y+boss.h/2,vx:Math.cos(a)*ENEMY_BULLET_SPEED*1.2,vy:Math.sin(a)*ENEMY_BULLET_SPEED*1.2,w:6,h:6,damage:1,color:'#ff0000',life:120});
+                            enemyBullets.push({x:boss.x,y:boss.y+boss.h/2,vx:-Math.cos(a)*ENEMY_BULLET_SPEED*1.2,vy:Math.sin(a)*ENEMY_BULLET_SPEED*1.2,w:6,h:6,damage:1,color:'#ff0000',life:120});
                         }
                         boss.shootTimer=30;
                     }

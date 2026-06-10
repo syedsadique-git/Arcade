@@ -1501,9 +1501,10 @@
                     ctx.fillStyle='#ff0';
                     ctx.font='bold '+Math.max(12,Math.floor(CELL*0.9))+'px "Press Start 2P",monospace';
                     ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('READY!',CW/2,17*CELL);
+                    ctx.fillText('READY!',CW/2,16*CELL);
                     ctx.fillStyle='#0ff';
                     ctx.font=Math.max(8,Math.floor(CELL*0.45))+'px "Press Start 2P",monospace';
+                    ctx.fillText('LEVEL '+level+(level%LEVELS.length===0?' (CLASSIC)':' (NEW)'),CW/2,18*CELL);
                     ctx.fillText('Arrow Keys or WASD to start',CW/2,20*CELL);
                 }
                 if(dead){
@@ -1518,6 +1519,20 @@
                     ctx.fillStyle='#0f5';
                     ctx.font=Math.max(8,Math.floor(CELL*0.5))+'px "Press Start 2P",monospace';
                     ctx.fillText('Click or Press Key to Restart',CW/2,CH/2+CELL*1.5);
+                }
+                if(won){
+                    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,CW,CH);
+                    ctx.fillStyle='#0ff';
+                    ctx.font='bold '+Math.max(14,Math.floor(CELL*1.0))+'px "Press Start 2P",monospace';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('LEVEL COMPLETE!',CW/2,CH/2-CELL*1.5);
+                    ctx.fillStyle='#ff0';
+                    ctx.font=Math.max(10,Math.floor(CELL*0.7))+'px "Press Start 2P",monospace';
+                    ctx.fillText('SCORE: '+score,CW/2,CH/2);
+                    var nextLvl=(level)%LEVELS.length+1;
+                    ctx.fillStyle='#0f5';
+                    ctx.font=Math.max(9,Math.floor(CELL*0.55))+'px "Press Start 2P",monospace';
+                    ctx.fillText('LEVEL '+nextLvl+' NEXT!',CW/2,CH/2+CELL*1.2);
                 }
             }
 
@@ -3065,7 +3080,7 @@ function startPoker(container, W, H) {
             }
 
             // ===== Card Animation =====
-            let heartRaf=null;
+            let heartRaf=null,alive=true;
             function animLoop(ts){
                 if(!alive){heartRaf=null;return;}
                 let needsRedraw=false;
@@ -3093,7 +3108,6 @@ function startPoker(container, W, H) {
                 heartRaf=requestAnimationFrame(animLoop);
             }
             function startAnimLoop(){if(!heartRaf)heartRaf=requestAnimationFrame(animLoop);}
-            let alive=true;
             function animCard(card,fromP,toP,dur,cb){
                 let fp=getPlayerPos(fromP),tp=toP===-1?{x:W/2,y:H/2-10}:getPlayerPos(toP);
                 cardAnim={card,fx:fp.x,fy:fp.y,tx:tp.x,ty:tp.y,t:0,dur:dur,cb:cb};

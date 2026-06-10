@@ -2896,6 +2896,120 @@ function startPoker(container, W, H) {
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
+            // ===== Audio System =====
+            let audioCtx=null;
+            function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
+            function resumeAudio(){if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}
+
+            function playTone(freq,dur,type,vol,detune){
+                initAudio();resumeAudio();
+                let o=audioCtx.createOscillator();
+                let g=audioCtx.createGain();
+                o.type=type||'sine';
+                o.frequency.value=freq;
+                if(detune)o.detune.value=detune;
+                g.gain.setValueAtTime(vol||0.15,audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+                o.connect(g);g.connect(audioCtx.destination);
+                o.start();o.stop(audioCtx.currentTime+dur);
+            }
+
+            function playNoise(dur,vol){
+                initAudio();resumeAudio();
+                let bufSize=audioCtx.sampleRate*dur;
+                let buf=audioCtx.createBuffer(1,bufSize,audioCtx.sampleRate);
+                let data=buf.getChannelData(0);
+                for(let i=0;i<bufSize;i++)data[i]=(Math.random()*2-1)*0.5;
+                let src=audioCtx.createBufferSource();
+                src.buffer=buf;
+                let g=audioCtx.createGain();
+                g.gain.setValueAtTime(vol||0.08,audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+                let filt=audioCtx.createBiquadFilter();
+                filt.type='highpass';filt.frequency.value=2000;
+                src.connect(filt);filt.connect(g);g.connect(audioCtx.destination);
+                src.start();src.stop(audioCtx.currentTime+dur);
+            }
+
+            function sfxCardSelect(){
+                playTone(880,0.06,'sine',0.12);
+                playNoise(0.03,0.06);
+            }
+            function sfxCardDeselect(){
+                playTone(440,0.06,'sine',0.08);
+            }
+            function sfxCardPlay(){
+                playNoise(0.08,0.1);
+                playTone(660,0.05,'triangle',0.1);
+            }
+            function sfxPassCards(){
+                playTone(523,0.08,'sine',0.1);
+                setTimeout(function(){playTone(659,0.08,'sine',0.1);},80);
+                setTimeout(function(){playTone(784,0.12,'sine',0.12);},160);
+            }
+            function sfxButtonClick(){
+                playTone(700,0.05,'square',0.08);
+                playNoise(0.02,0.04);
+            }
+            function sfxWinTrick(){
+                playTone(523,0.1,'sine',0.12);
+                setTimeout(function(){playTone(659,0.1,'sine',0.12);},100);
+                setTimeout(function(){playTone(784,0.15,'sine',0.15);},200);
+            }
+            function sfxGameOver(){
+                [523,466,415,349,311].forEach(function(f,i){
+                    setTimeout(function(){playTone(f,0.25,'sine',0.12);},i*200);
+                });
+            }
+            function sfxShootMoon(){
+                [523,659,784,1047].forEach(function(f,i){
+                    setTimeout(function(){playTone(f,0.15,'sine',0.15);},i*100);
+                });
+            }
+
+            // Background music - ambient loop
+            let bgMusicPlaying=false;
+            let bgMusicNodes=[];
+            function startBGMusic(){
+                if(bgMusicPlaying)return;
+                initAudio();resumeAudio();
+                bgMusicPlaying=true;
+                function playLoop(){
+                    if(!bgMusicPlaying)return;
+                    let now=audioCtx.currentTime;
+                    // Gentle pad chord: C major (C4 E4 G4)
+                    [261.6,329.6,392].forEach(function(f,i){
+                        let o=audioCtx.createOscillator();
+                        let g=audioCtx.createGain();
+                        o.type='sine';o.frequency.value=f;
+                        g.gain.setValueAtTime(0,now);
+                        g.gain.linearRampToValueAtTime(0.03,now+0.5);
+                        g.gain.linearRampToValueAtTime(0.025,now+2);
+                        g.gain.linearRampToValueAtTime(0,now+3);
+                        o.connect(g);g.connect(audioCtx.destination);
+                        o.start(now);o.stop(now+3);
+                        bgMusicNodes.push(o);
+                    });
+                    // Subtle bass note
+                    let bass=audioCtx.createOscillator();
+                    let bg=audioCtx.createGain();
+                    bass.type='sine';bass.frequency.value=130.8;
+                    bg.gain.setValueAtTime(0,now);
+                    bg.gain.linearRampToValueAtTime(0.04,now+0.3);
+                    bg.gain.linearRampToValueAtTime(0,now+2.8);
+                    bass.connect(bg);bg.connect(audioCtx.destination);
+                    bass.start(now);bass.stop(now+3);
+                    bgMusicNodes.push(bass);
+                    setTimeout(playLoop,2800);
+                }
+                playLoop();
+            }
+            function stopBGMusic(){
+                bgMusicPlaying=false;
+                bgMusicNodes.forEach(function(n){try{n.stop();}catch(e){}});
+                bgMusicNodes=[];
+            }
+
             let hands=[[],[],[],[]];
             let scores=[0,0,0,0];
             let trick=[], trickSuit=-1;
@@ -3061,6 +3175,7 @@ function startPoker(container, W, H) {
                     if(move){
                         if(trick.length===0)trickSuit=move.suit;
                         playCard(currentPlayer,move);
+                        sfxCardPlay();
                         if(move.suit===3)heartsBroken=true;
                     }
                     advanceTurn();
@@ -3070,6 +3185,7 @@ function startPoker(container, W, H) {
             function advanceTurn(){
                 if(trick.length===4){
                     let result=evaluateTrick();
+                    sfxWinTrick();
                     roundScores[result.winner]+=result.pts;
                     trickNum++;
                     firstTrick=false;
@@ -3104,6 +3220,7 @@ function startPoker(container, W, H) {
                 let shotMoon=-1;
                 for(let i=0;i<4;i++){if(roundScores[i]===26){shotMoon=i;break;}}
                 if(shotMoon>=0){
+                    sfxShootMoon();
                     for(let i=0;i<4;i++){
                         scores[i]+=i===shotMoon?0:26;
                         roundScores[i]=i===shotMoon?0:26;
@@ -3115,6 +3232,8 @@ function startPoker(container, W, H) {
                 }
                 let isGameOver=scores.some(s=>s>=100);
                 if(isGameOver){
+                    sfxGameOver();
+                    stopBGMusic();
                     let winner=0,minScore=scores[0];
                     for(let i=1;i<4;i++){if(scores[i]<minScore){minScore=scores[i];winner=i;}}
                     phase='gameover';
@@ -3145,7 +3264,8 @@ function startPoker(container, W, H) {
 
             function resetGame(){
                 scores=[0,0,0,0];phase='choosing';passSelection=[];
-                msg='Choose pass direction';msg2='';draw();
+                msg='Choose pass direction';msg2='';
+                startBGMusic();draw();
             }
 
             // ===== Drawing =====
@@ -3197,43 +3317,6 @@ function startPoker(container, W, H) {
                 roundRect(W*0.1,4,W*0.8,28,6);ctx.fill();
                 ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
                 ctx.fillText('YOU:'+scores[0]+'   LEFT:'+scores[1]+'   TOP:'+scores[2]+'   RIGHT:'+scores[3],cx,18);
-
-                // Phase indicator
-                if(phase==='choosing'){
-                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('CHOOSE PASS DIRECTION',cx,55);
-                    // Draw buttons
-                    let btnLabels=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
-                    let btnColors=['#cc6600','#0066cc','#9966cc','#666666'];
-                    for(let i=0;i<4;i++){
-                        let bx=cx-240+i*130;
-                        let by=80;
-                        ctx.fillStyle=btnColors[i];
-                        roundRect(bx,by,120,36,6);ctx.fill();
-                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
-                        roundRect(bx,by,120,36,6);ctx.stroke();
-                        ctx.fillStyle='#fff';ctx.font='bold 11px "Press Start 2P",monospace';
-                        ctx.fillText(btnLabels[i],bx+60,by+18);
-                    }
-                } else if(phase==='passing'){
-                    let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
-                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
-                    ctx.fillText('PASS '+dirs[passDir],cx,50);
-                    ctx.fillStyle='#88ff88';ctx.font='11px "Press Start 2P",monospace';
-                    ctx.fillText('Click cards to select ('+passSelection.length+'/3)',cx,68);
-                    if(passSelection.length===3){
-                        let pbx=cx-50, pby=95;
-                        ctx.fillStyle='#00aa00';
-                        roundRect(pbx,pby,100,32,6);ctx.fill();
-                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
-                        roundRect(pbx,pby,100,32,6);ctx.stroke();
-                        ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';
-                        ctx.fillText('PASS',cx,pby+16);
-                        ctx.fillStyle='#ffcc44';ctx.font='9px "Press Start 2P",monospace';
-                        ctx.fillText('or click a card to deselect',cx,pby+48);
-                    }
-                }
 
                 // Opponent positions
                 let topY=80;
@@ -3360,6 +3443,48 @@ function startPoker(container, W, H) {
                     ctx.fillStyle='rgba(0,255,100,0.15)';
                     ctx.fillRect(0,H-cardH-22,W,cardH+22);
                 }
+
+                // Phase overlays (drawn LAST so they're on top)
+                if(phase==='choosing'){
+                    ctx.fillStyle='rgba(0,0,0,0.7)';
+                    roundRect(cx-260,cy-90,520,180,10);ctx.fill();
+                    ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;
+                    roundRect(cx-260,cy-90,520,180,10);ctx.stroke();
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('CHOOSE PASS DIRECTION',cx,cy-65);
+                    let btnLabels=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    let btnColors=['#cc6600','#0066cc','#9966cc','#666666'];
+                    for(let i=0;i<4;i++){
+                        let bx=cx-240+i*130;
+                        let by=cy-25;
+                        ctx.fillStyle=btnColors[i];
+                        roundRect(bx,by,120,36,6);ctx.fill();
+                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
+                        roundRect(bx,by,120,36,6);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 11px "Press Start 2P",monospace';
+                        ctx.textAlign='center';ctx.textBaseline='middle';
+                        ctx.fillText(btnLabels[i],bx+60,by+18);
+                    }
+                } else if(phase==='passing'){
+                    let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    ctx.fillStyle='rgba(0,0,0,0.7)';
+                    roundRect(cx-160,36,320,52,8);ctx.fill();
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('PASS '+dirs[passDir],cx,50);
+                    ctx.fillStyle='#88ff88';ctx.font='11px "Press Start 2P",monospace';
+                    ctx.fillText('Click cards to select ('+passSelection.length+'/3)',cx,70);
+                    if(passSelection.length===3){
+                        let pbx=cx-50, pby=93;
+                        ctx.fillStyle='#00aa00';
+                        roundRect(pbx,pby,100,30,6);ctx.fill();
+                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
+                        roundRect(pbx,pby,100,30,6);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';
+                        ctx.fillText('\u25B6 PASS',cx,pby+15);
+                    }
+                }
             }
 
             // ===== Click handling =====
@@ -3391,6 +3516,7 @@ function startPoker(container, W, H) {
                 let my=(e.clientY-rect.top)*(canvas.height/rect.height);
 
                 if(phase==='scoring'||phase==='gameover'){
+                    sfxButtonClick();
                     if(phase==='gameover')resetGame();
                     else{phase='choosing';passSelection=[];}
                     draw();return;
@@ -3398,11 +3524,13 @@ function startPoker(container, W, H) {
 
                 if(phase==='choosing'){
                     let cx2=W/2;
+                    let cy2=H/2;
                     let btnLabels=['LEFT','RIGHT','ACROSS','NO PASS'];
                     for(let i=0;i<4;i++){
                         let bx=cx2-240+i*130;
-                        let by=80;
+                        let by=cy2-25;
                         if(mx>=bx&&mx<=bx+120&&my>=by&&my<=by+36){
+                            sfxButtonClick();
                             passDir=i;
                             startRound();
                             draw();return;
@@ -3413,10 +3541,11 @@ function startPoker(container, W, H) {
 
                 // PASS button click
                 if(phase==='passing'&&passSelection.length===3){
-                    let pbx=W/2-50, pby=95;
-                    if(mx>=pbx&&mx<=pbx+100&&my>=pby&&my<=pby+32){
+                    let pbx=W/2-50, pby=93;
+                    if(mx>=pbx&&mx<=pbx+100&&my>=pby&&my<=pby+30){
+                        sfxButtonClick();
                         animating=true;draw();
-                        setTimeout(()=>{executePassing();draw();},300);
+                        setTimeout(function(){sfxPassCards();executePassing();draw();},300);
                         return;
                     }
                 }
@@ -3427,8 +3556,8 @@ function startPoker(container, W, H) {
 
                 if(phase==='passing'){
                     let pi=passSelection.indexOf(c);
-                    if(pi>=0)passSelection.splice(pi,1);
-                    else if(passSelection.length<3)passSelection.push(c);
+                    if(pi>=0){passSelection.splice(pi,1);sfxCardDeselect();}
+                    else if(passSelection.length<3){passSelection.push(c);sfxCardSelect();}
                     draw();return;
                 }
 
@@ -3437,6 +3566,7 @@ function startPoker(container, W, H) {
                     if(valid.some(vc=>vc===c)){
                         if(trick.length===0)trickSuit=c.suit;
                         playCard(0,c);
+                        sfxCardPlay();
                         if(c.suit===3)heartsBroken=true;
                         advanceTurn();
                         draw();
@@ -3447,10 +3577,11 @@ function startPoker(container, W, H) {
             canvas.setAttribute('tabindex','0');
             canvas.focus();
 
-            container._cleanup=function(){};
+            container._cleanup=function(){stopBGMusic();audioCtx=null;};
 
             phase='choosing';passDir=0;passSelection=[];
             msg='Choose pass direction';msg2='';
+            startBGMusic();
             draw();
         }
 

@@ -3387,9 +3387,9 @@ function startPoker(container, W, H) {
                 // ===== Tip Bar =====
                 let tip=getTip();
                 if(tip&&!animating&&(phase==='playing'||phase==='passing')){
-                    ctx.fillStyle='rgba(0,60,0,0.75)';roundRect(8,H-68,W-16,18,4);ctx.fill();
-                    ctx.fillStyle='#aaffaa';ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText(tip,cx,H-59);
+                    ctx.fillStyle='rgba(0,60,0,0.75)';roundRect(8,H-16,W-16,14,4);ctx.fill();
+                    ctx.fillStyle='#aaffaa';ctx.font='7px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(tip,cx,H-9);
                 }
 
                 // ===== Message =====

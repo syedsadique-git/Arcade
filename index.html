@@ -3144,7 +3144,8 @@ function startPoker(container, W, H) {
             }
 
             function resetGame(){
-                scores=[0,0,0,0];phase='choosing';passSelection=[];startRound();draw();
+                scores=[0,0,0,0];phase='choosing';passSelection=[];
+                msg='Choose pass direction';msg2='';draw();
             }
 
             // ===== Drawing =====
@@ -3221,6 +3222,17 @@ function startPoker(container, W, H) {
                     ctx.fillText('PASS '+dirs[passDir],cx,50);
                     ctx.fillStyle='#88ff88';ctx.font='11px "Press Start 2P",monospace';
                     ctx.fillText('Click cards to select ('+passSelection.length+'/3)',cx,68);
+                    if(passSelection.length===3){
+                        let pbx=cx-50, pby=95;
+                        ctx.fillStyle='#00aa00';
+                        roundRect(pbx,pby,100,32,6);ctx.fill();
+                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
+                        roundRect(pbx,pby,100,32,6);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';
+                        ctx.fillText('PASS',cx,pby+16);
+                        ctx.fillStyle='#ffcc44';ctx.font='9px "Press Start 2P",monospace';
+                        ctx.fillText('or click a card to deselect',cx,pby+48);
+                    }
                 }
 
                 // Opponent positions
@@ -3399,6 +3411,16 @@ function startPoker(container, W, H) {
                     return;
                 }
 
+                // PASS button click
+                if(phase==='passing'&&passSelection.length===3){
+                    let pbx=W/2-50, pby=95;
+                    if(mx>=pbx&&mx<=pbx+100&&my>=pby&&my<=pby+32){
+                        animating=true;draw();
+                        setTimeout(()=>{executePassing();draw();},300);
+                        return;
+                    }
+                }
+
                 let idx=getCardAtPos(mx,my);
                 if(idx<0)return;
                 let c=hands[0][idx];
@@ -3407,11 +3429,6 @@ function startPoker(container, W, H) {
                     let pi=passSelection.indexOf(c);
                     if(pi>=0)passSelection.splice(pi,1);
                     else if(passSelection.length<3)passSelection.push(c);
-                    if(passSelection.length===3){
-                        animating=true;
-                        draw();
-                        setTimeout(()=>{executePassing();draw();},300);
-                    }
                     draw();return;
                 }
 
@@ -3433,7 +3450,7 @@ function startPoker(container, W, H) {
             container._cleanup=function(){};
 
             phase='choosing';passDir=0;passSelection=[];
-            startRound();
+            msg='Choose pass direction';msg2='';
             draw();
         }
 

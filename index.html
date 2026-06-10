@@ -2888,8 +2888,7 @@ function startPoker(container, W, H) {
            CARDS (Hearts) — 4-player trick-taking card game
         ===================================================================== */
         function startCards(container, W, H) {
-            const SUITS=['♣','♦','♠','♥'];
-            const SUIT_NAMES=['Clubs','Diamonds','Spades','Hearts'];
+            const SUITS=['\u2663','\u2666','\u2660','\u2665'];
             const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
             const canvas=document.createElement('canvas');
             canvas.width=W; canvas.height=H;
@@ -2897,40 +2896,37 @@ function startPoker(container, W, H) {
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
-            let hands=[[],[],[],[]]; // 0=player, 1=left, 2=top, 3=right
+            let hands=[[],[],[],[]];
             let scores=[0,0,0,0];
-            let trick=[], trickLead=-1, trickSuit=-1;
+            let trick=[], trickSuit=-1;
             let currentPlayer=0;
-            let phase='passing'; // passing, playing, scoring, gameover
-            let passDir=0; // 0=left,1=right,2=across,3=none
+            let phase='passing';
+            let passDir=0;
             let passSelection=[];
-            let passTarget=-1;
             let trickNum=0;
             let heartsBroken=false;
             let firstTrick=true;
             let msg='Select 3 cards to pass';
             let msg2='';
-            let leadCard=null;
             let roundScores=[0,0,0,0];
-            let selectedCard=-1;
             let animating=false;
-            let trickWinner=-1;
-            let trickCards=[];
-            let timer=0;
 
-            function makeCard(suit,rank){return{suit,rank,value:RANKS.indexOf(rank)+2};}
-            function cardId(c){return c.suit*13+c.rank;}
-            function isPenalty(c){return c.suit===3||(c.suit===2&&c.rank===11);}
-            function cardScore(c){return c.suit===3?1:(c.suit===2&&c.rank===11?13:0);}
-            function cardColor(c){return c.suit===1||c.suit===3?'#cc0000':'#000';}
-            function cardStr(c){return c.rank+SUITS[c.suit];}
+            function makeCard(suit,rankStr){
+                let val=RANKS.indexOf(rankStr)+2;
+                return{suit:suit,rank:rankStr,value:val};
+            }
+            function isPenalty(c){return c.suit===3||(c.suit===2&&c.rank==='Q');}
+            function cardScore(c){return c.suit===3?1:(c.suit===2&&c.rank==='Q'?13:0);}
 
             function makeDeck(){
                 let d=[];
-                for(let s=0;s<4;s++)for(let r=0;r<13;r++)d.push(makeCard(s,r));
+                for(let s=0;s<4;s++)for(let r=0;r<13;r++)d.push(makeCard(s,RANKS[r]));
                 return d;
             }
-            function shuffle(d){for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+            function shuffle(d){
+                for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+                return d;
+            }
 
             function deal(){
                 let deck=shuffle(makeDeck());
@@ -2938,28 +2934,24 @@ function startPoker(container, W, H) {
                 for(let i=0;i<4;i++)sortHand(i);
             }
             function sortHand(p){
-                hands[p].sort((a,b)=>a.suit===b.suit?a.value-b.value:a.suit-b.suit);
+                hands[p].sort((a,b)=>a.suit!==b.suit?a.suit-b.suit:a.value-b.value);
             }
 
             function hasSuit(p,suit){return hands[p].some(c=>c.suit===suit);}
-            function hasTwoClubs(p){return hands[p].some(c=>c.suit===0&&c.value===2);}
+            function hasTwoClubs(p){return hands[p].some(c=>c.suit===0&&c.rank==='2');}
 
             function findValidMoves(p){
                 let hand=hands[p];
-                if(hand.length===0) return [];
-                if(firstTrick&&trick.length===0){
-                    let tc=hand.find(c=>c.suit===0&&c.value===2);
-                    return tc?[tc]:hand;
-                }
+                if(hand.length===0)return [];
                 if(trick.length===0){
-                    if(!heartsBroken&&hand.every(c=>c.suit===3)){
-                        return hand;
+                    if(firstTrick){
+                        let tc=hand.find(c=>c.suit===0&&c.rank==='2');
+                        return tc?[tc]:hand;
                     }
+                    if(!heartsBroken&&hand.every(c=>c.suit===3))return hand;
                     return hand.filter(c=>!(firstTrick&&isPenalty(c)));
                 }
-                if(hasSuit(p,trickSuit)){
-                    return hand.filter(c=>c.suit===trickSuit);
-                }
+                if(hasSuit(p,trickSuit))return hand.filter(c=>c.suit===trickSuit);
                 return hand;
             }
 
@@ -2967,7 +2959,6 @@ function startPoker(container, W, H) {
                 let idx=hands[p].indexOf(c);
                 if(idx>=0)hands[p].splice(idx,1);
                 trick.push({card:c,player:p});
-                trickCards.push({card:c,player:p});
             }
 
             function evaluateTrick(){
@@ -2980,15 +2971,7 @@ function startPoker(container, W, H) {
                         highVal=t.card.value;winner=t.player;
                     }
                 }
-                return{winner,pts};
-            }
-
-            function checkShootMoon(p){
-                let totalHearts=0,qos=false;
-                let hand=hands[p];
-                // Check all penalty cards already taken by this player
-                let taken=roundScores[p];
-                return taken===26;
+                return{winner:winner,pts:pts};
             }
 
             function aiDecide(p){
@@ -2997,142 +2980,82 @@ function startPoker(container, W, H) {
                 if(valid.length===1)return valid[0];
 
                 if(trick.length===0){
-                    let lowCards=valid.filter(c=>c.suit!==3&&(c.suit!==2||c.rank!==11));
-                    if(lowCards.length>0)return lowCards[0];
+                    let safe=valid.filter(c=>c.suit!==3&&!(c.suit===2&&c.rank==='Q'));
+                    if(safe.length>0)return safe[0];
                     return valid[valid.length-1];
                 }
 
-                let highPlay=false;
-                let winnerCard=trick[0].card;
-                let highVal=winnerCard.value;
+                let highVal=-1;
                 let trickHasPenalty=trick.some(t=>isPenalty(t.card));
                 for(let t of trick){
-                    if(t.card.suit===trickSuit&&t.card.value>highVal){
-                        highVal=t.card.value;winnerCard=t.card;
-                    }
+                    if(t.card.suit===trickSuit&&t.card.value>highVal)highVal=t.card.value;
                 }
 
                 let followsuit=valid.filter(c=>c.suit===trickSuit);
                 if(followsuit.length>0){
-                    let safe=followsuit.filter(c=>c.value<highVal&&!(trickHasPenalty&&isPenalty(c)));
+                    let safe=followsuit.filter(c=>c.value<highVal);
                     if(safe.length>0)return safe[safe.length-1];
                     return followsuit[0];
                 }
 
-                let penalties=valid.filter(c=>isPenalty(c));
                 let safe=valid.filter(c=>!isPenalty(c));
-                if(penalties.length>0&&safe.length>0)return safe[0];
-                if(penalties.length>0)return penalties[penalties.length-1];
+                if(safe.length>0)return safe[0];
                 return valid[valid.length-1];
             }
 
-            function startRound(){
-                deal();
-                heartsBroken=false;
-                firstTrick=true;
-                trickNum=0;
-                roundScores=[0,0,0,0];
-                if(passDir!==3){
-                    phase='passing';
-                    msg='Select 3 cards to pass '+['left','right','across',''][passDir];
-                    passSelection=[];
-                    passTarget=-1;
-                } else {
-                    phase='playing';
-                    for(let i=0;i<4;i++){
-                        if(hasTwoClubs(i)){currentPlayer=i;break;}
-                    }
-                    msg=currentPlayer===0?'Your turn - lead with 2♣':'Opponents playing...';
-                }
-                trick=[];
-                trickCards=[];
-                selectedCard=-1;
-                animating=false;
+            function aiPassSelect(p){
+                let hand=[...hands[p]];
+                hand.sort((a,b)=>{
+                    let sa=isPenalty(a)?100+a.value:a.value;
+                    let sb=isPenalty(b)?100+b.value:b.value;
+                    return sb-sa;
+                });
+                return hand.slice(0,3);
             }
 
             function executePassing(){
-                let targets=[[1,2,3],[3,2,1],[2,3,1],[0,0,0]];
-                let t=targets[passDir];
-                let passed=[[],[],[],[]];
-                for(let i=0;i<4;i++){
-                    let cards=i===0?passSelection:aiPassSelect(i);
-                    passed[i]=cards;
-                    for(let c of cards){
-                        let idx=hands[i].indexOf(c);
-                        if(idx>=0)hands[i].splice(idx,1);
-                    }
-                }
-                for(let i=0;i<4;i++){
-                    let from=(i+1)%4;
-                    if(passDir<3){
-                        let src=passed[from===0?0:from];
-                        for(let c of src)hands[i].push(c);
-                    }
-                }
-                // Fix: proper pass targets
-                // passDir 0=left (player passes to left), 1=right, 2=across
                 let passFrom=[[1,2,3],[3,2,1],[2,3,1]];
-                if(passDir<3){
-                    let newHands=[[],[],[],[]];
-                    for(let i=0;i<4;i++){
-                        let received=[];
-                        for(let j=0;j<4;j++){
-                            if(j===i)continue;
-                            let fromIdx=passFrom[passDir].indexOf(i);
-                            // Each player j passes to passFrom[passDir][j]
+                let dir=passFrom[passDir];
+                let passed=[[],[],[],[]];
+                passed[0]=[...passSelection];
+                for(let i=1;i<4;i++)passed[i]=aiPassSelect(i);
+
+                let tempHands=[[],[],[],[]];
+                for(let i=0;i<4;i++)tempHands[i]=[...hands[i]];
+                for(let i=0;i<4;i++){
+                    let target=dir[i];
+                    for(let c of passed[i]){
+                        let idx=tempHands[i].findIndex(x=>x===c);
+                        if(idx>=0){
+                            tempHands[i].splice(idx,1);
+                            tempHands[target].push(c);
                         }
                     }
-                    // Simpler: rebuild from scratch
-                    let tempHands=[[],[],[],[]];
-                    for(let i=0;i<4;i++)tempHands[i]=[...hands[i]];
-                    for(let i=0;i<4;i++){
-                        let target=passFrom[passDir][i];
-                        let cards=i===0?passSelection:aiPassSelect(i);
-                        for(let c of cards){
-                            let idx=tempHands[i].indexOf(c);
-                            if(idx>=0){
-                                tempHands[i].splice(idx,1);
-                                tempHands[target].push(c);
-                            }
-                        }
-                    }
-                    for(let i=0;i<4;i++)hands[i]=tempHands[i];
                 }
-                for(let i=0;i<4;i++)sortHand(i);
+                for(let i=0;i<4;i++){hands[i]=tempHands[i];sortHand(i);}
 
                 phase='playing';
+                currentPlayer=-1;
                 for(let i=0;i<4;i++){
                     if(hasTwoClubs(i)){currentPlayer=i;break;}
                 }
-                msg=currentPlayer===0?'Your turn - lead with 2♣':'Opponents playing...';
-            }
-
-            function aiPassSelect(p){
-                let hand=hands[p];
-                let sortable=hand.map((c,i)=>({card:c,idx:i}));
-                sortable.sort((a,b)=>{
-                    let sa=isPenalty(a.card)?100+a.card.value:a.card.value;
-                    let sb=isPenalty(b.card)?100+b.card.value:b.card.value;
-                    return sb-sa;
-                });
-                return sortable.slice(0,3).map(s=>s.card);
+                msg=currentPlayer===0?'Your turn - lead with 2\u2663':'Opponents playing...';
+                if(currentPlayer!==0){
+                    animating=true;
+                    draw();
+                    setTimeout(()=>aiTurn(),600);
+                }
             }
 
             function startTrick(){
-                trick=[];
-                trickCards=[];
-                trickSuit=-1;
-                if(firstTrick){
-                    for(let i=0;i<4;i++){
-                        if(hasTwoClubs(i)){currentPlayer=i;break;}
-                    }
-                }
+                trick=[];trickSuit=-1;
                 if(currentPlayer!==0)aiTurn();
             }
 
             function aiTurn(){
                 if(animating||phase!=='playing')return;
                 animating=true;
+                draw();
                 setTimeout(()=>{
                     let move=aiDecide(currentPlayer);
                     if(move){
@@ -3141,28 +3064,25 @@ function startPoker(container, W, H) {
                         if(move.suit===3)heartsBroken=true;
                     }
                     advanceTurn();
-                },500);
+                },450);
             }
 
             function advanceTurn(){
                 if(trick.length===4){
                     let result=evaluateTrick();
-                    trickWinner=result.winner;
                     roundScores[result.winner]+=result.pts;
                     trickNum++;
                     firstTrick=false;
-                    currentPlayer=trickWinner;
+                    currentPlayer=result.winner;
                     if(hands[0].length===0){
-                        endRound();
-                        return;
+                        endRound();return;
                     }
                     trick=[];
-                    trickCards=[];
                     animating=false;
                     if(currentPlayer!==0){
-                        msg='Opponents playing...';
+                        msg='Opponent won trick, playing...';
                         draw();
-                        setTimeout(()=>{startTrick();draw();},800);
+                        setTimeout(()=>{startTrick();draw();},700);
                     } else {
                         msg='Your turn - lead a card';
                         draw();
@@ -3182,65 +3102,52 @@ function startPoker(container, W, H) {
             function endRound(){
                 phase='scoring';
                 let shotMoon=-1;
-                for(let i=0;i<4;i++){
-                    if(roundScores[i]===26){shotMoon=i;break;}
-                }
+                for(let i=0;i<4;i++){if(roundScores[i]===26){shotMoon=i;break;}}
                 if(shotMoon>=0){
                     for(let i=0;i<4;i++){
                         scores[i]+=i===shotMoon?0:26;
                         roundScores[i]=i===shotMoon?0:26;
                     }
-                    msg=(shotMoon===0?'You shot the moon!':'Player '+['You','Left','Top','Right'][shotMoon]+' shot the moon!')+' +26 to others!';
+                    msg=(shotMoon===0?'You shot the moon!':'Player '+['You','Left','Top','Right'][shotMoon]+' shot the moon!');
                 } else {
                     for(let i=0;i<4;i++)scores[i]+=roundScores[i];
-                    msg='Round over!';
+                    msg='Round complete!';
                 }
-                let gameOver=false;
-                for(let i=0;i<4;i++){if(scores[i]>=100)gameOver=true;}
-                if(gameOver){
+                let isGameOver=scores.some(s=>s>=100);
+                if(isGameOver){
                     let winner=0,minScore=scores[0];
                     for(let i=1;i<4;i++){if(scores[i]<minScore){minScore=scores[i];winner=i;}}
                     phase='gameover';
-                    msg=minScore===0?'Perfect game!':(['You','Left','Top','Right'][winner]+' wins with '+minScore+' points!');
+                    msg=['You','Left','Top','Right'][winner]+' wins with '+minScore+' points!';
                     msg2='Click to play again';
                 }
                 draw();
             }
 
-            function resetGame(){
-                scores=[0,0,0,0];
-                startRound();
-                draw();
-            }
-
-            // Drawing
-            function drawCard(c,x,y,w,h,faceUp,highlight){
-                if(!faceUp){
-                    ctx.fillStyle='#1a3a6a';
-                    roundRect(x,y,w,h,5);ctx.fill();
-                    ctx.strokeStyle='#2a5aaa';ctx.lineWidth=2;
-                    roundRect(x,y,w,h,5);ctx.stroke();
-                    ctx.fillStyle='#2a5aaa';
-                    ctx.font=(w*0.3)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('🂠',x+w/2,y+h/2);
-                    return;
+            function startRound(){
+                deal();
+                heartsBroken=false;firstTrick=true;trickNum=0;
+                roundScores=[0,0,0,0];
+                if(passDir!==3){
+                    phase='passing';passSelection=[];
+                    msg='Select 3 cards to pass '+['left','right','across',''][passDir];
+                } else {
+                    phase='playing';currentPlayer=-1;
+                    for(let i=0;i<4;i++){if(hasTwoClubs(i)){currentPlayer=i;break;}}
+                    msg=currentPlayer===0?'Your turn - lead with 2\u2663':'Opponents playing...';
+                    if(currentPlayer!==0){
+                        animating=true;
+                        setTimeout(()=>aiTurn(),600);
+                    }
                 }
-                ctx.fillStyle=highlight?'#ffffaa':'#fff';
-                roundRect(x,y,w,h,5);ctx.fill();
-                let isRed=c.suit===1||c.suit===3;
-                ctx.strokeStyle=highlight?'#ffcc00':'#999';ctx.lineWidth=highlight?2:1;
-                roundRect(x,y,w,h,5);ctx.stroke();
-                ctx.fillStyle=isRed?'#cc0000':'#000';
-                ctx.textAlign='left';ctx.textBaseline='top';
-                ctx.font='bold '+(w*0.28)+'px "VT323",monospace';
-                ctx.fillText(c.rank,x+w*0.08,y+h*0.05);
-                ctx.font=(w*0.45)+'px serif';
-                ctx.fillText(SUITS[c.suit],x+w*0.08,y+h*0.28);
-                ctx.textAlign='right';ctx.textBaseline='bottom';
-                ctx.font='bold '+(w*0.28)+'px "VT323",monospace';
-                ctx.fillText(c.rank,x+w*0.92,y+h*0.95);
+                trick=[];animating=false;msg2='';
             }
 
+            function resetGame(){
+                scores=[0,0,0,0];passDir=0;startRound();draw();
+            }
+
+            // ===== Drawing =====
             function roundRect(x,y,w,h,r){
                 ctx.beginPath();
                 ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -3250,201 +3157,249 @@ function startPoker(container, W, H) {
                 ctx.closePath();
             }
 
+            function drawCard(c,x,y,w,h,faceUp,selected){
+                if(!faceUp){
+                    ctx.fillStyle='#1a3a6a';
+                    roundRect(x,y,w,h,4);ctx.fill();
+                    ctx.strokeStyle='#2a5aaa';ctx.lineWidth=1.5;
+                    roundRect(x,y,w,h,4);ctx.stroke();
+                    ctx.fillStyle='#3a6aba';ctx.font=Math.floor(w*0.35)+'px serif';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('\uD83C\uDCA0',x+w/2,y+h/2);
+                    return;
+                }
+                ctx.fillStyle=selected?'#ffffaa':'#fff';
+                roundRect(x,y,w,h,4);ctx.fill();
+                let isRed=c.suit===1||c.suit===3;
+                ctx.strokeStyle=selected?'#ffcc00':'#999';ctx.lineWidth=selected?2:1;
+                roundRect(x,y,w,h,4);ctx.stroke();
+                ctx.fillStyle=isRed?'#cc0000':'#000';
+                ctx.textAlign='left';ctx.textBaseline='top';
+                ctx.font='bold '+Math.floor(w*0.3)+'px "VT323",monospace';
+                ctx.fillText(c.rank,x+w*0.08,y+h*0.04);
+                ctx.font=Math.floor(w*0.45)+'px serif';
+                ctx.fillText(SUITS[c.suit],x+w*0.1,y+h*0.32);
+                ctx.textAlign='right';ctx.textBaseline='bottom';
+                ctx.font='bold '+Math.floor(w*0.3)+'px "VT323",monospace';
+                ctx.fillText(c.rank,x+w*0.92,y+h*0.96);
+            }
+
             function draw(){
                 ctx.fillStyle='#0a5c2a';ctx.fillRect(0,0,W,H);
 
                 let cx=W/2, cy=H/2;
-                let cardW=Math.min(60,W*0.06);
-                let cardH=cardW*1.4;
+                let cardW=Math.max(40,Math.min(58,W*0.05));
+                let cardH=Math.floor(cardW*1.45);
 
-                // Score area
+                // Score bar
                 ctx.fillStyle='rgba(0,0,0,0.5)';
-                roundRect(W*0.15,5,W*0.7,30,6);ctx.fill();
-                ctx.fillStyle='#fff';ctx.font='12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                let scoreText='YOU:'+scores[0]+'  LEFT:'+scores[1]+'  TOP:'+scores[2]+'  RIGHT:'+scores[3];
-                ctx.fillText(scoreText,W/2,20);
+                roundRect(W*0.1,4,W*0.8,28,6);ctx.fill();
+                ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                ctx.fillText('YOU:'+scores[0]+'   LEFT:'+scores[1]+'   TOP:'+scores[2]+'   RIGHT:'+scores[3],cx,18);
 
-                // Pass direction indicator
+                // Phase indicator
                 if(phase==='passing'){
-                    let dirs=['← LEFT','→ RIGHT','↕ ACROSS','NO PASS'];
-                    ctx.fillStyle='#ffcc00';ctx.font='bold 16px "Press Start 2P",monospace';
-                    ctx.fillText('PASS: '+dirs[passDir],W/2,55);
+                    let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
+                    ctx.fillText('PASS '+dirs[passDir],cx,50);
+                    ctx.fillStyle='#88ff88';ctx.font='11px "Press Start 2P",monospace';
+                    ctx.fillText('Click cards to select ('+passSelection.length+'/3)',cx,68);
                 }
 
-                // Opponent card counts and labels
-                let names=['YOU','LEFT','TOP','RIGHT'];
-                let positions=[
-                    {x:cx,y:H-cardH-40,align:'center'},  // bottom (player)
-                    {x:40,y:cy,align:'left'},              // left
-                    {x:cx,y:60,align:'center'},            // top
-                    {x:W-40,y:cy,align:'right'}           // right
-                ];
+                // Opponent positions
+                let topY=80;
+                let oppCardW=Math.floor(cardW*0.45);
+                let oppCardH=Math.floor(cardH*0.45);
 
-                // Draw opponent cards (face down)
-                for(let p=1;p<4;p++){
-                    let pos=positions[p];
-                    let count=hands[p].length;
-                    if(count===0)continue;
-                    for(let i=0;i<count;i++){
-                        let ox,oy;
-                        if(p===1){
-                            ox=5;oy=pos.y-(count*8)/2+i*8;
-                            drawCard(null,ox,oy,cardW*0.5,cardH*0.7,false);
-                        } else if(p===2){
-                            ox=pos.x-((count-1)*cardW*0.3)/2+i*cardW*0.3;
-                            oy=55;
-                            drawCard(null,ox,oy,cardW*0.5,cardH*0.5,false);
-                        } else {
-                            ox=W-cardW*0.5-5;oy=pos.y-((count-1)*8)/2+i*8;
-                            drawCard(null,ox,oy,cardW*0.5,cardH*0.7,false);
-                        }
+                // Top opponent
+                let topCount=hands[2].length;
+                if(topCount>0){
+                    let topSpacing=Math.min(oppCardW*0.4,W*0.7/(topCount));
+                    let topStart=cx-((topCount-1)*topSpacing)/2;
+                    for(let i=0;i<topCount;i++){
+                        drawCard(null,topStart+i*topSpacing,topY,oppCardW,oppCardH,false);
                     }
-                    ctx.fillStyle=p===currentPlayer&&phase==='playing'?'#ffff00':'#ccc';
+                    ctx.fillStyle=2===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
                     ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    let lx,ly;
-                    if(p===1){lx=40;ly=pos.y-count*4-15;}
-                    else if(p===2){lx=pos.x;ly=55+cardH*0.5+15;}
-                    else{lx=W-40;ly=pos.y-count*4-15;}
-                    ctx.fillText(names[p]+' ['+count+']',lx,ly);
+                    ctx.fillText('TOP ['+topCount+']',cx,topY+oppCardH+14);
                 }
 
-                // Draw trick in center
-                for(let t of trickCards){
-                    let p=t.player;
+                // Left opponent
+                let leftX=20;
+                let leftCount=hands[1].length;
+                if(leftCount>0){
+                    let leftSpacing=Math.min(10,(H-160)/leftCount);
+                    let leftStartY=cy-((leftCount-1)*leftSpacing)/2;
+                    for(let i=0;i<leftCount;i++){
+                        drawCard(null,leftX,leftStartY+i*leftSpacing,oppCardW,oppCardH,false);
+                    }
+                    ctx.fillStyle=1===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
+                    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText('LEFT',leftX+oppCardW/2,leftStartY-12);
+                    ctx.fillText('['+leftCount+']',leftX+oppCardW/2,leftStartY-1);
+                }
+
+                // Right opponent
+                let rightX=W-oppCardW-20;
+                let rightCount=hands[3].length;
+                if(rightCount>0){
+                    let rightSpacing=Math.min(10,(H-160)/rightCount);
+                    let rightStartY=cy-((rightCount-1)*rightSpacing)/2;
+                    for(let i=0;i<rightCount;i++){
+                        drawCard(null,rightX,rightStartY+i*rightSpacing,oppCardW,oppCardH,false);
+                    }
+                    ctx.fillStyle=3===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
+                    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText('RIGHT',rightX+oppCardW/2,rightStartY-12);
+                    ctx.fillText('['+rightCount+']',rightX+oppCardW/2,rightStartY-1);
+                }
+
+                // Trick area (center)
+                let trickSpacing=cardW*0.6;
+                for(let t of trick){
                     let tx,ty;
-                    if(p===0){tx=cx-cardW/2;ty=cy+cardH*0.3;}
-                    else if(p===1){tx=cx-cardW-cardH*0.2;ty=cy-cardH/2;}
-                    else if(p===2){tx=cx-cardW/2;ty=cy-cardH-cardH*0.2;}
-                    else{tx=cx+cardH*0.2;ty=cy-cardH/2;}
+                    if(t.player===0){tx=cx-trickSpacing/2;ty=cy+20;}
+                    else if(t.player===1){tx=cx-trickSpacing-cardW-10;ty=cy-cardH/2;}
+                    else if(t.player===2){tx=cx-trickSpacing/2;ty=cy-cardH-10;}
+                    else{tx=cx+trickSpacing+10;ty=cy-cardH/2;}
                     drawCard(t.card,tx,ty,cardW,cardH,true,false);
+                    let isRed=t.card.suit===1||t.card.suit===3;
+                    ctx.fillStyle=isRed?'#ff6666':'#aaa';ctx.font='9px "VT323",monospace';
+                    ctx.textAlign='center';
+                    let names=['YOU','L','T','R'];
+                    ctx.fillText(names[t.player],tx+cardW/2,ty+cardH+10);
                 }
 
-                // Draw player's hand
+                // Player hand
                 let playerHand=hands[0];
                 if(playerHand.length>0){
-                    let totalW=Math.min(playerHand.length*cardW*0.6,W*0.85);
-                    let spacing=totalW/(playerHand.length||1);
+                    let handY=H-cardH-20;
+                    let maxW=W-60;
+                    let overlap=Math.max(0,(playerHand.length*cardW-maxW)/(playerHand.length-1||1));
+                    overlap=Math.min(overlap,cardW*0.65);
+                    let totalW=playerHand.length*(cardW-overlap)+overlap;
                     let startX=cx-totalW/2;
-                    let handY=H-cardH-15;
 
                     for(let i=0;i<playerHand.length;i++){
                         let c=playerHand[i];
-                        let x=startX+i*spacing;
-                        let y=handY;
-                        let isSelected=selectedCard===i;
-                        let isPlayable=phase==='playing'&&currentPlayer===0&&!animating&&findValidMoves(0).some(fc=>fc===c);
-                        if(isSelected)y-=15;
-                        let highlight=isPlayable&&(isSelected||(currentPlayer===0&&trick.length===0&&c.suit===0&&c.value===2));
-                        drawCard(c,x,y,cardW,cardH,true,highlight||isSelected);
-                        if(!isPlayable&&phase==='playing'&&currentPlayer===0){
-                            ctx.fillStyle='rgba(0,0,0,0.3)';
-                            roundRect(x,y,cardW,cardH,5);ctx.fill();
+                        let x=startX+i*(cardW-overlap);
+                        let isSel=passSelection.indexOf(c)>=0;
+                        let isValid=phase==='playing'&&currentPlayer===0&&!animating&&findValidMoves(0).some(fc=>fc===c);
+                        let yOff=(isSel&&phase==='passing')?-12:0;
+                        drawCard(c,x,handY+yOff,cardW,cardH,true,isSel);
+                        if(!isValid&&phase==='playing'&&currentPlayer===0&&!animating){
+                            ctx.fillStyle='rgba(0,0,0,0.25)';
+                            roundRect(x,handY+yOff,cardW,cardH,4);ctx.fill();
                         }
                     }
-
-                    // Player label
                     ctx.fillStyle='#ffff00';ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('YOU ['+playerHand.length+']',cx,handY-5);
+                    ctx.fillText('YOU ['+playerHand.length+']',cx,handY-6);
                 }
 
-                // Message
-                ctx.fillStyle='rgba(0,0,0,0.6)';
-                roundRect(cx-200,cy-cardH-10,400,30,6);ctx.fill();
-                ctx.fillStyle='#ffff00';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                ctx.fillText(msg,cx,cy-cardH+5);
-
+                // Message bar
+                if(msg){
+                    ctx.fillStyle='rgba(0,0,0,0.65)';
+                    roundRect(cx-220,cy-cardH/2-30,440,28,6);ctx.fill();
+                    ctx.fillStyle='#ffff00';ctx.font='bold 12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(msg,cx,cy-cardH/2-16);
+                }
                 if(msg2){
                     ctx.fillStyle='#00ff88';ctx.font='11px "Press Start 2P",monospace';
-                    ctx.fillText(msg2,cx,cy-cardH+25);
+                    ctx.fillText(msg2,cx,cy-cardH/2+2);
                 }
 
-                // Scoring table
+                // Scoring overlay
                 if(phase==='scoring'||phase==='gameover'){
                     ctx.fillStyle='rgba(0,0,0,0.8)';
-                    roundRect(cx-180,cy-120,360,240,10);ctx.fill();
+                    roundRect(cx-180,cy-130,360,260,10);ctx.fill();
                     ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
-                    roundRect(cx-180,cy-120,360,240,10);ctx.stroke();
-                    ctx.fillStyle='#ffd700';ctx.font='bold 16px "Press Start 2P",monospace';
-                    ctx.fillText(phase==='gameover'?'GAME OVER':'ROUND SCORES',cx,cy-100);
-                    ctx.fillStyle='#fff';ctx.font='14px "Press Start 2P",monospace';
+                    roundRect(cx-180,cy-130,360,260,10);ctx.stroke();
+                    ctx.fillStyle='#ffd700';ctx.font='bold 16px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText(phase==='gameover'?'GAME OVER':'ROUND SCORES',cx,cy-110);
+                    ctx.font='14px "Press Start 2P",monospace';
                     for(let i=0;i<4;i++){
-                        let py=cy-60+i*35;
+                        let py=cy-70+i*38;
                         ctx.fillStyle=i===0?'#ffff00':'#ffffff';
-                        ctx.fillText(names[i]+': '+scores[i]+' ('+(roundScores[i]>=0?'+':'')+roundScores[i]+')',cx,py);
+                        ctx.fillText(['YOU','LEFT','TOP','RIGHT'][i]+': '+scores[i]+' ('+roundScores[i]+')',cx,py);
                     }
                     ctx.fillStyle='#00ff88';ctx.font='11px "Press Start 2P",monospace';
-                    if(phase==='scoring')ctx.fillText('Click to continue',cx,cy+100);
-                    if(phase==='gameover')ctx.fillText('Click to play again',cx,cy+100);
+                    ctx.fillText('Click to '+(phase==='gameover'?'play again':'continue'),cx,cy+100);
+                }
+
+                // Turn indicator
+                if(phase==='playing'&&!animating&&currentPlayer===0){
+                    ctx.fillStyle='rgba(0,255,100,0.15)';
+                    ctx.fillRect(0,H-cardH-22,W,cardH+22);
                 }
             }
 
-            // Click handling
+            // ===== Click handling =====
+            function getCardAtPos(mx,my){
+                let playerHand=hands[0];
+                if(!playerHand.length)return-1;
+                let cx=W/2;
+                let cardW=Math.max(40,Math.min(58,W*0.05));
+                let cardH=Math.floor(cardW*1.45);
+                let handY=H-cardH-20;
+                let maxW=W-60;
+                let overlap=Math.max(0,(playerHand.length*cardW-maxW)/(playerHand.length-1||1));
+                overlap=Math.min(overlap,cardW*0.65);
+                let totalW=playerHand.length*(cardW-overlap)+overlap;
+                let startX=cx-totalW/2;
+                for(let i=0;i<playerHand.length;i++){
+                    let x=startX+i*(cardW-overlap);
+                    let isSel=passSelection.indexOf(playerHand[i])>=0;
+                    let yOff=(isSel&&phase==='passing')?-12:0;
+                    if(mx>=x&&mx<=x+cardW&&my>=handY+yOff&&my<=handY+yOff+cardH)return i;
+                }
+                return-1;
+            }
+
             canvas.addEventListener('click',e=>{
                 if(animating)return;
                 let rect=canvas.getBoundingClientRect();
                 let mx=(e.clientX-rect.left)*(canvas.width/rect.width);
                 let my=(e.clientY-rect.top)*(canvas.height/rect.height);
 
-                if(phase==='scoring'){
-                    startRound();draw();return;
-                }
-                if(phase==='gameover'){
-                    resetGame();return;
+                if(phase==='scoring'||phase==='gameover'){
+                    if(phase==='gameover')resetGame();
+                    else{passDir=(passDir+1)%4;startRound();}
+                    draw();return;
                 }
 
-                if(phase==='passing'&&currentPlayer===0){
-                    let playerHand=hands[0];
-                    let cardW=Math.min(60,W*0.06);
-                    let cardH=cardW*1.4;
-                    let totalW=Math.min(playerHand.length*cardW*0.6,W*0.85);
-                    let spacing=totalW/(playerHand.length||1);
-                    let startX=W/2-totalW/2;
-                    let handY=H-cardH-15;
-                    for(let i=0;i<playerHand.length;i++){
-                        let x=startX+i*spacing;
-                        if(mx>=x&&mx<=x+cardW&&my>=handY&&my<=handY+cardH){
-                            let idx=passSelection.indexOf(playerHand[i]);
-                            if(idx>=0){passSelection.splice(idx,1);}
-                            else if(passSelection.length<3){passSelection.push(playerHand[i]);}
-                            if(passSelection.length===3){
-                                executePassing();
-                                startTrick();
-                            }
-                            draw();return;
-                        }
+                let idx=getCardAtPos(mx,my);
+                if(idx<0)return;
+                let c=hands[0][idx];
+
+                if(phase==='passing'){
+                    let pi=passSelection.indexOf(c);
+                    if(pi>=0)passSelection.splice(pi,1);
+                    else if(passSelection.length<3)passSelection.push(c);
+                    if(passSelection.length===3){
+                        animating=true;
+                        draw();
+                        setTimeout(()=>{executePassing();draw();},300);
                     }
-                    return;
+                    draw();return;
                 }
 
                 if(phase==='playing'&&currentPlayer===0){
-                    let playerHand=hands[0];
                     let valid=findValidMoves(0);
-                    let cardW=Math.min(60,W*0.06);
-                    let cardH=cardW*1.4;
-                    let totalW=Math.min(playerHand.length*cardW*0.6,W*0.85);
-                    let spacing=totalW/(playerHand.length||1);
-                    let startX=W/2-totalW/2;
-                    let handY=H-cardH-15;
-                    for(let i=0;i<playerHand.length;i++){
-                        let x=startX+i*spacing;
-                        let y=i===selectedCard?handY-15:handY;
-                        if(mx>=x&&mx<=x+cardW&&my>=y&&my<=y+cardH){
-                            let c=playerHand[i];
-                            if(valid.some(vc=>vc===c)){
-                                if(trick.length===0)trickSuit=c.suit;
-                                playCard(0,c);
-                                if(c.suit===3)heartsBroken=true;
-                                selectedCard=-1;
-                                advanceTurn();
-                                draw();
-                            }
-                            return;
-                        }
+                    if(valid.some(vc=>vc===c)){
+                        if(trick.length===0)trickSuit=c.suit;
+                        playCard(0,c);
+                        if(c.suit===3)heartsBroken=true;
+                        advanceTurn();
+                        draw();
                     }
                 }
             });
 
-            // Init
+            canvas.setAttribute('tabindex','0');
+            canvas.focus();
+
+            container._cleanup=function(){};
+
             passDir=0;
             startRound();
             draw();

@@ -4509,26 +4509,84 @@ function startPoker(container, W, H) {
             }
 
             function drawCourt() {
-                ctx.fillStyle = '#0a0a1a';
+                // Background floor
+                ctx.fillStyle = '#1a1a2e';
                 ctx.fillRect(0, 0, W, H);
 
-                ctx.strokeStyle = '#1a3a5c';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(10, 10, W - 20, H - 20);
+                let margin=40;
+                let tw=W-margin*2, th=H-margin*2;
 
-                ctx.setLineDash([10, 10]);
-                ctx.strokeStyle = '#1a3a5c';
-                ctx.lineWidth = 2;
+                // Shadow under table
+                ctx.fillStyle='rgba(0,0,0,0.4)';
+                ctx.fillRect(margin+4,margin+4,tw,th);
+
+                // Table surface - dark green
+                let grd=ctx.createLinearGradient(margin,margin,margin,tw);
+                grd.addColorStop(0,'#0d4a3a');
+                grd.addColorStop(0.5,'#0f5a45');
+                grd.addColorStop(1,'#0d4a3a');
+                ctx.fillStyle=grd;
+                ctx.fillRect(margin,margin,tw,th);
+
+                // Subtle wood grain / texture lines
+                ctx.strokeStyle='rgba(255,255,255,0.03)';
+                ctx.lineWidth=1;
+                for(let i=0;i<tw;i+=12){
+                    ctx.beginPath();
+                    ctx.moveTo(margin+i,margin);
+                    ctx.lineTo(margin+i,margin+th);
+                    ctx.stroke();
+                }
+
+                // White boundary lines (all 4 sides)
+                ctx.strokeStyle='#ffffff';
+                ctx.lineWidth=2;
+                ctx.strokeRect(margin+6,margin+6,tw-12,th-12);
+
+                // Center line (divides left/right halves)
                 ctx.beginPath();
-                ctx.moveTo(W / 2, 10);
-                ctx.lineTo(W / 2, H - 10);
+                ctx.moveTo(W/2,margin+6);
+                ctx.lineTo(W/2,margin+th-6);
+                ctx.stroke();
+
+                // Center circle
+                ctx.strokeStyle='rgba(255,255,255,0.15)';
+                ctx.lineWidth=1;
+                ctx.setLineDash([4,6]);
+                ctx.beginPath();
+                ctx.arc(W/2,H/2,30,0,Math.PI*2);
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                ctx.fillStyle = '#162a40';
-                ctx.beginPath();
-                ctx.arc(W / 2, H / 2, 40, 0, Math.PI * 2);
-                ctx.fill();
+                // Net at center
+                let netTop=margin+6, netBot=margin+th-6;
+                ctx.fillStyle='rgba(255,255,255,0.05)';
+                ctx.fillRect(W/2-1,netTop,2,netBot-netTop);
+                // Net mesh
+                ctx.strokeStyle='rgba(255,255,255,0.12)';
+                ctx.lineWidth=0.5;
+                for(let y=netTop;y<netBot;y+=8){
+                    for(let x=-4;x<=4;x+=4){
+                        ctx.fillStyle='rgba(255,255,255,0.08)';
+                        ctx.fillRect(W/2+x-0.5,y,1,4);
+                    }
+                }
+                // Net top edge
+                ctx.fillStyle='#ffffff';
+                ctx.fillRect(W/2-3,netTop,6,3);
+                ctx.fillRect(W/2-3,netBot-3,6,3);
+
+                // Corner markers
+                ctx.fillStyle='rgba(255,255,255,0.08)';
+                let cm=12;
+                ctx.fillRect(margin+6,margin+6,cm,2);
+                ctx.fillRect(margin+6,margin+6,2,cm);
+                ctx.fillRect(margin+tw-6-cm,margin+6,cm,2);
+                ctx.fillRect(margin+tw-8,margin+6,2,cm);
+                ctx.fillRect(margin+6,margin+th-8,cm,2);
+                ctx.fillRect(margin+6,margin+th-6-cm,2,cm);
+                ctx.fillRect(margin+tw-6-cm,margin+th-8,cm,2);
+                ctx.fillRect(margin+tw-8,margin+th-6-cm,2,cm);
             }
 
             function drawPaddles() {

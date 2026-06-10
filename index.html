@@ -3425,9 +3425,11 @@ function startPoker(container, W, H) {
 
                 // ===== Choosing Overlay =====
                 if(phase==='choosing'){
-                    ctx.fillStyle='rgba(0,0,0,0.8)';roundRect(cx-250,cy-95,500,190,10);ctx.fill();
+                    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+                    ctx.fillStyle='rgba(0,0,0,0.9)';roundRect(cx-250,cy-95,500,190,10);ctx.fill();
                     ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;roundRect(cx-250,cy-95,500,190,10);ctx.stroke();
                     ctx.fillStyle='#ffcc00';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.shadowBlur=0;
                     ctx.fillText('CHOOSE PASS DIRECTION',cx,cy-65);
                     ctx.fillStyle='#aaa';ctx.font='8px "Press Start 2P",monospace';
                     ctx.fillText('Pass 3 cards to an opponent each round',cx,cy-48);
@@ -3446,7 +3448,8 @@ function startPoker(container, W, H) {
                 // ===== Passing Overlay =====
                 if(phase==='passing'){
                     let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
-                    ctx.fillStyle='rgba(0,0,0,0.8)';roundRect(cx-190,cy-85,380,170,10);ctx.fill();
+                    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+                    ctx.fillStyle='rgba(0,0,0,0.9)';roundRect(cx-190,cy-85,380,170,10);ctx.fill();
                     ctx.strokeStyle='#88ff88';ctx.lineWidth=1;roundRect(cx-190,cy-85,380,170,10);ctx.stroke();
                     ctx.fillStyle='#ffcc00';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
                     ctx.fillText('PASS '+dirs[passDir],cx,cy-58);

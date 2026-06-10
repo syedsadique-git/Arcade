@@ -3088,7 +3088,7 @@ function startPoker(container, W, H) {
                     cardAnim.t+=16;
                     if(cardAnim.t>=cardAnim.dur){
                         let cb=cardAnim.cb;cardAnim=null;
-                        if(!trickClearAnim)animating=false;
+                        if(!trickClearAnim){animating=false;heartRaf=null;}
                         if(cb)cb();
                         return;
                     }
@@ -3098,7 +3098,7 @@ function startPoker(container, W, H) {
                     trickClearAnim.t+=16;
                     if(trickClearAnim.t>=trickClearAnim.dur){
                         let cb=trickClearAnim.cb;trickClearAnim=null;
-                        animating=false;
+                        animating=false;heartRaf=null;
                         if(cb)cb();
                         return;
                     }

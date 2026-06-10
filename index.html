@@ -2900,7 +2900,7 @@ function startPoker(container, W, H) {
             let scores=[0,0,0,0];
             let trick=[], trickSuit=-1;
             let currentPlayer=0;
-            let phase='passing';
+            let phase='choosing'; // choosing, passing, playing, scoring, gameover
             let passDir=0;
             let passSelection=[];
             let trickNum=0;
@@ -3144,7 +3144,7 @@ function startPoker(container, W, H) {
             }
 
             function resetGame(){
-                scores=[0,0,0,0];passDir=0;startRound();draw();
+                scores=[0,0,0,0];phase='choosing';passSelection=[];startRound();draw();
             }
 
             // ===== Drawing =====
@@ -3198,7 +3198,24 @@ function startPoker(container, W, H) {
                 ctx.fillText('YOU:'+scores[0]+'   LEFT:'+scores[1]+'   TOP:'+scores[2]+'   RIGHT:'+scores[3],cx,18);
 
                 // Phase indicator
-                if(phase==='passing'){
+                if(phase==='choosing'){
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('CHOOSE PASS DIRECTION',cx,55);
+                    // Draw buttons
+                    let btnLabels=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    let btnColors=['#cc6600','#0066cc','#9966cc','#666666'];
+                    for(let i=0;i<4;i++){
+                        let bx=cx-240+i*130;
+                        let by=80;
+                        ctx.fillStyle=btnColors[i];
+                        roundRect(bx,by,120,36,6);ctx.fill();
+                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
+                        roundRect(bx,by,120,36,6);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 11px "Press Start 2P",monospace';
+                        ctx.fillText(btnLabels[i],bx+60,by+18);
+                    }
+                } else if(phase==='passing'){
                     let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
                     ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
                     ctx.fillText('PASS '+dirs[passDir],cx,50);
@@ -3363,8 +3380,23 @@ function startPoker(container, W, H) {
 
                 if(phase==='scoring'||phase==='gameover'){
                     if(phase==='gameover')resetGame();
-                    else{passDir=(passDir+1)%4;startRound();}
+                    else{phase='choosing';passSelection=[];}
                     draw();return;
+                }
+
+                if(phase==='choosing'){
+                    let cx2=W/2;
+                    let btnLabels=['LEFT','RIGHT','ACROSS','NO PASS'];
+                    for(let i=0;i<4;i++){
+                        let bx=cx2-240+i*130;
+                        let by=80;
+                        if(mx>=bx&&mx<=bx+120&&my>=by&&my<=by+36){
+                            passDir=i;
+                            startRound();
+                            draw();return;
+                        }
+                    }
+                    return;
                 }
 
                 let idx=getCardAtPos(mx,my);
@@ -3400,7 +3432,7 @@ function startPoker(container, W, H) {
 
             container._cleanup=function(){};
 
-            passDir=0;
+            phase='choosing';passDir=0;passSelection=[];
             startRound();
             draw();
         }

@@ -1293,6 +1293,38 @@
                             ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,Math.max(1,CELL*pulse),0,Math.PI*2);ctx.fill();
                         }
                     }
+                } else if(phase==='passanim'){
+                    let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    ctx.fillStyle='rgba(0,0,0,0.6)';
+                    ctx.fillRect(0,0,W,H);
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 16px "Press Start 2P",monospace';
+                    ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('Passing cards '+dirs[passDir]+'...',cx,cy-60);
+
+                    let oppPos=[
+                        {x:cx,y:H-cardH-20},
+                        {x:20+oppCardW/2,y:cy},
+                        {x:cx,y:80+oppCardH/2},
+                        {x:W-20-oppCardW/2,y:cy}
+                    ];
+                    let miniW=cardW*0.55, miniH=cardH*0.55;
+                    for(let ac of passAnim.cards){
+                        let fromPos=oppPos[ac.from];
+                        let toPos=oppPos[ac.to];
+                        let t=ac.t;
+                        let eased=t<0.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);
+                        let px=fromPos.x+(toPos.x-fromPos.x)*eased;
+                        let py=fromPos.y+(toPos.y-fromPos.y)*eased;
+                        ctx.globalAlpha=0.9;
+                        drawCard(ac.card,px-miniW/2,py-miniH/2,miniW,miniH,true,false);
+                        ctx.globalAlpha=1;
+                    }
+
+                    let barW=200, barH=8, barX=cx-barW/2, barY=cy+40;
+                    ctx.fillStyle='#333';
+                    roundRect(barX,barY,barW,barH,4);ctx.fill();
+                    ctx.fillStyle='#88ff88';
+                    roundRect(barX,barY,barW*passAnim.t,barH,4);ctx.fill();
                 }
             }
             function drawPac(){
@@ -2885,345 +2917,232 @@ function startPoker(container, W, H) {
         
 
         /* =====================================================================
-           CARDS (Hearts) — 4-player trick-taking card game
+           CARDS (Hearts) â€” 4-player trick-taking card game
         ===================================================================== */
         function startCards(container, W, H) {
             const SUITS=['\u2663','\u2666','\u2660','\u2665'];
+            const SUIT_NAMES=['Clubs','Diamonds','Spades','Hearts'];
             const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+            const PNAME=['You','Left','Top','Right'];
             const canvas=document.createElement('canvas');
             canvas.width=W; canvas.height=H;
             canvas.style.cssText='display:block;margin:auto;background:#0a5c2a;cursor:pointer;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
-            // ===== Audio System =====
+            // ===== Audio =====
             let audioCtx=null;
             function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
             function resumeAudio(){if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}
-
-            function playTone(freq,dur,type,vol,detune){
+            function playTone(freq,dur,type,vol){
                 initAudio();resumeAudio();
-                let o=audioCtx.createOscillator();
-                let g=audioCtx.createGain();
-                o.type=type||'sine';
-                o.frequency.value=freq;
-                if(detune)o.detune.value=detune;
-                g.gain.setValueAtTime(vol||0.15,audioCtx.currentTime);
+                let o=audioCtx.createOscillator(),g=audioCtx.createGain();
+                o.type=type||'sine';o.frequency.value=freq;
+                g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);
                 g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
-                o.connect(g);g.connect(audioCtx.destination);
-                o.start();o.stop(audioCtx.currentTime+dur);
+                o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur);
             }
-
             function playNoise(dur,vol){
                 initAudio();resumeAudio();
-                let bufSize=audioCtx.sampleRate*dur;
-                let buf=audioCtx.createBuffer(1,bufSize,audioCtx.sampleRate);
-                let data=buf.getChannelData(0);
-                for(let i=0;i<bufSize;i++)data[i]=(Math.random()*2-1)*0.5;
-                let src=audioCtx.createBufferSource();
-                src.buffer=buf;
-                let g=audioCtx.createGain();
-                g.gain.setValueAtTime(vol||0.08,audioCtx.currentTime);
+                let b=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate);
+                let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;
+                let s=audioCtx.createBufferSource();s.buffer=b;
+                let g=audioCtx.createGain();g.gain.setValueAtTime(vol||0.05,audioCtx.currentTime);
                 g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
-                let filt=audioCtx.createBiquadFilter();
-                filt.type='highpass';filt.frequency.value=2000;
-                src.connect(filt);filt.connect(g);g.connect(audioCtx.destination);
-                src.start();src.stop(audioCtx.currentTime+dur);
+                let f=audioCtx.createBiquadFilter();f.type='highpass';f.frequency.value=2000;
+                s.connect(f);f.connect(g);g.connect(audioCtx.destination);s.start();s.stop(audioCtx.currentTime+dur);
             }
+            function sfxSelect(){playTone(880,0.04,'square',0.06);playTone(1100,0.03,'square',0.04);}
+            function sfxDeselect(){playTone(440,0.04,'square',0.04);}
+            function sfxPlay(){playNoise(0.04,0.06);playTone(523,0.03,'square',0.06);}
+            function sfxPass(){playTone(523,0.06,'square',0.06);setTimeout(()=>playTone(659,0.06,'square',0.06),60);setTimeout(()=>playTone(784,0.08,'square',0.07),120);}
+            function sfxBtn(){playTone(800,0.03,'square',0.05);}
+            function sfxWin(){playTone(523,0.06,'square',0.06);setTimeout(()=>playTone(659,0.06,'square',0.06),60);setTimeout(()=>playTone(784,0.08,'square',0.07),120);}
+            function sfxGameOver(){[523,466,415,349,311].forEach((f,i)=>setTimeout(()=>playTone(f,0.15,'square',0.06),i*140));}
+            function sfxMoon(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.08,'square',0.07),i*60));}
 
-            function sfxCardSelect(){
-                playTone(880,0.05,'square',0.08);
-                playTone(1100,0.04,'square',0.06);
-            }
-            function sfxCardDeselect(){
-                playTone(440,0.05,'square',0.06);
-            }
-            function sfxCardPlay(){
-                playNoise(0.06,0.08);
-                playTone(523,0.04,'square',0.08);
-            }
-            function sfxPassCards(){
-                playTone(523,0.08,'square',0.08);
-                setTimeout(function(){playTone(659,0.08,'square',0.08);},80);
-                setTimeout(function(){playTone(784,0.1,'square',0.1);},160);
-            }
-            function sfxButtonClick(){
-                playTone(800,0.04,'square',0.07);
-            }
-            function sfxWinTrick(){
-                playTone(523,0.08,'square',0.08);
-                setTimeout(function(){playTone(659,0.08,'square',0.08);},80);
-                setTimeout(function(){playTone(784,0.12,'square',0.1);},160);
-            }
-            function sfxGameOver(){
-                [523,466,415,349,311].forEach(function(f,i){
-                    setTimeout(function(){playTone(f,0.2,'square',0.08);},i*180);
-                });
-            }
-            function sfxShootMoon(){
-                [523,659,784,1047].forEach(function(f,i){
-                    setTimeout(function(){playTone(f,0.12,'square',0.1);},i*80);
-                });
-            }
-
-            // Background music - old school chiptune loop
-            let bgMusicPlaying=false;
-            let bgMusicTimer=null;
-            function startBGMusic(){
-                if(bgMusicPlaying)return;
-                initAudio();resumeAudio();
-                bgMusicPlaying=true;
-                // Simple 8-bit melody pattern (Mario-esque)
-                let melody=[
-                    [659,0.12],[659,0.12],[0,0.06],[659,0.12],[0,0.06],[523,0.12],[659,0.12],
-                    [0,0.06],[784,0.24],[0,0.12],[392,0.24],[0,0.12],
-                    [523,0.18],[0,0.06],[392,0.18],[0,0.06],[330,0.18],[0,0.06],
-                    [440,0.12],[0,0.06],[494,0.12],[0,0.06],[466,0.12],[440,0.12],
-                    [0,0.06],[392,0.10],[659,0.10],[784,0.12],[880,0.12],[0,0.06],
-                    [698,0.12],[784,0.12],[0,0.06],[659,0.12],[0,0.06],
-                    [523,0.12],[587,0.12],[494,0.18],[0,0.18]
-                ];
-                let noteIdx=0;
-                function playNote(){
-                    if(!bgMusicPlaying)return;
-                    let n=melody[noteIdx%melody.length];
-                    let freq=n[0], dur=n[1];
-                    if(freq>0){
-                        let now=audioCtx.currentTime;
-                        let o=audioCtx.createOscillator();
-                        let g=audioCtx.createGain();
-                        o.type='square';
-                        o.frequency.value=freq;
-                        g.gain.setValueAtTime(0.06,now);
-                        g.gain.setValueAtTime(0.06,now+dur*0.7);
-                        g.gain.linearRampToValueAtTime(0,now+dur);
-                        o.connect(g);g.connect(audioCtx.destination);
-                        o.start(now);o.stop(now+dur);
-                        // Triangle wave bass (one octave down)
-                        let ob=audioCtx.createOscillator();
-                        let gb=audioCtx.createGain();
-                        ob.type='triangle';
-                        ob.frequency.value=freq/2;
-                        gb.gain.setValueAtTime(0.04,now);
-                        gb.gain.setValueAtTime(0.04,now+dur*0.7);
-                        gb.gain.linearRampToValueAtTime(0,now+dur);
-                        ob.connect(gb);gb.connect(audioCtx.destination);
-                        ob.start(now);ob.stop(now+dur);
+            // Background music - chiptune loop
+            let bgPlaying=false,bgTimer=null;
+            function startBG(){
+                if(bgPlaying)return;initAudio();resumeAudio();bgPlaying=true;
+                let mel=[[659,.12],[659,.12],[0,.06],[659,.12],[0,.06],[523,.12],[659,.12],[0,.06],[784,.24],[0,.12],[392,.24],[0,.12],
+                    [523,.18],[0,.06],[392,.18],[0,.06],[330,.18],[0,.06],[440,.12],[0,.06],[494,.12],[0,.06],[466,.12],[440,.12],
+                    [0,.06],[392,.1],[659,.1],[784,.12],[880,.12],[0,.06],[698,.12],[784,.12],[0,.06],[659,.12],[0,.06],
+                    [523,.12],[587,.12],[494,.18],[0,.18]];
+                let ni=0;
+                function pn(){
+                    if(!bgPlaying)return;
+                    let n=mel[ni%mel.length],f=n[0],d=n[1];
+                    if(f>0){let now=audioCtx.currentTime;
+                        let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.value=f;
+                        g.gain.setValueAtTime(0.04,now);g.gain.setValueAtTime(0.04,now+d*0.7);g.gain.linearRampToValueAtTime(0,now+d);
+                        o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+d);
+                        let b=audioCtx.createOscillator(),bg2=audioCtx.createGain();b.type='triangle';b.frequency.value=f/2;
+                        bg2.gain.setValueAtTime(0.025,now);bg2.gain.setValueAtTime(0.025,now+d*0.7);bg2.gain.linearRampToValueAtTime(0,now+d);
+                        b.connect(bg2);bg2.connect(audioCtx.destination);b.start(now);b.stop(now+d);
                     }
-                    noteIdx++;
-                    bgMusicTimer=setTimeout(playNote,dur*1000);
-                }
-                playNote();
+                    ni++;bgTimer=setTimeout(pn,d*1000);
+                }pn();
             }
-            function stopBGMusic(){
-                bgMusicPlaying=false;
-                if(bgMusicTimer){clearTimeout(bgMusicTimer);bgMusicTimer=null;}
-            }
+            function stopBG(){bgPlaying=false;if(bgTimer){clearTimeout(bgTimer);bgTimer=null;}}
 
-            let hands=[[],[],[],[]];
-            let scores=[0,0,0,0];
-            let trick=[], trickSuit=-1;
-            let currentPlayer=0;
-            let phase='choosing'; // choosing, passing, playing, scoring, gameover
-            let passDir=0;
-            let passSelection=[];
-            let trickNum=0;
-            let heartsBroken=false;
-            let firstTrick=true;
-            let msg='Select 3 cards to pass';
-            let msg2='';
-            let roundScores=[0,0,0,0];
-            let animating=false;
+            // ===== Game State =====
+            let hands=[[],[],[],[]],scores=[0,0,0,0],roundScores=[0,0,0,0];
+            let trick=[],trickSuit=-1,currentPlayer=0;
+            let phase='choosing';
+            let passDir=0,passSelection=[],trickNum=0,heartsBroken=false,firstTrick=true;
+            let msg='',msg2='',animating=false;
 
-            function makeCard(suit,rankStr){
-                let val=RANKS.indexOf(rankStr)+2;
-                return{suit:suit,rank:rankStr,value:val};
-            }
+            // Animation state
+            let cardAnim=null;
+            let trickClearAnim=null;
+
+            // ===== Card Helpers =====
+            function makeCard(suit,rank){return{suit:suit,rank:rank,value:RANKS.indexOf(rank)+2};}
             function isPenalty(c){return c.suit===3||(c.suit===2&&c.rank==='Q');}
             function cardScore(c){return c.suit===3?1:(c.suit===2&&c.rank==='Q'?13:0);}
-
-            function makeDeck(){
-                let d=[];
-                for(let s=0;s<4;s++)for(let r=0;r<13;r++)d.push(makeCard(s,RANKS[r]));
-                return d;
-            }
-            function shuffle(d){
-                for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
-                return d;
-            }
-
-            function deal(){
-                let deck=shuffle(makeDeck());
-                for(let i=0;i<4;i++)hands[i]=deck.slice(i*13,i*13+13);
-                for(let i=0;i<4;i++)sortHand(i);
-            }
-            function sortHand(p){
-                hands[p].sort((a,b)=>a.suit!==b.suit?a.suit-b.suit:a.value-b.value);
-            }
-
+            function makeDeck(){let d=[];for(let s=0;s<4;s++)for(let r=0;r<13;r++)d.push(makeCard(s,RANKS[r]));return d;}
+            function shuffle(d){for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+            function deal(){let deck=shuffle(makeDeck());for(let i=0;i<4;i++)hands[i]=deck.slice(i*13,i*13+13);for(let i=0;i<4;i++)sortHand(i);}
+            function sortHand(p){hands[p].sort((a,b)=>a.suit!==b.suit?a.suit-b.suit:a.value-b.value);}
             function hasSuit(p,suit){return hands[p].some(c=>c.suit===suit);}
             function hasTwoClubs(p){return hands[p].some(c=>c.suit===0&&c.rank==='2');}
 
             function findValidMoves(p){
-                let hand=hands[p];
-                if(hand.length===0)return [];
+                let hand=hands[p];if(hand.length===0)return[];
                 if(trick.length===0){
-                    if(firstTrick){
-                        let tc=hand.find(c=>c.suit===0&&c.rank==='2');
-                        return tc?[tc]:hand;
-                    }
+                    if(firstTrick){let tc=hand.find(c=>c.suit===0&&c.rank==='2');return tc?[tc]:hand;}
                     if(!heartsBroken&&hand.every(c=>c.suit===3))return hand;
                     return hand.filter(c=>!(firstTrick&&isPenalty(c)));
                 }
                 if(hasSuit(p,trickSuit))return hand.filter(c=>c.suit===trickSuit);
                 return hand;
             }
-
-            function playCard(p,c){
-                let idx=hands[p].indexOf(c);
-                if(idx>=0)hands[p].splice(idx,1);
-                trick.push({card:c,player:p});
-            }
-
+            function playCard(p,c){let idx=hands[p].indexOf(c);if(idx>=0)hands[p].splice(idx,1);trick.push({card:c,player:p});}
             function evaluateTrick(){
-                let winner=trick[0].player;
-                let highVal=trick[0].card.value;
-                let pts=0;
-                for(let t of trick){
-                    pts+=cardScore(t.card);
-                    if(t.card.suit===trickSuit&&t.card.value>highVal){
-                        highVal=t.card.value;winner=t.player;
-                    }
-                }
+                let winner=trick[0].player,highVal=trick[0].card.value,pts=0;
+                for(let t of trick){pts+=cardScore(t.card);if(t.card.suit===trickSuit&&t.card.value>highVal){highVal=t.card.value;winner=t.player;}}
                 return{winner:winner,pts:pts};
             }
-
             function aiDecide(p){
-                let valid=findValidMoves(p);
-                if(valid.length===0)return null;
-                if(valid.length===1)return valid[0];
-
-                if(trick.length===0){
-                    let safe=valid.filter(c=>c.suit!==3&&!(c.suit===2&&c.rank==='Q'));
-                    if(safe.length>0)return safe[0];
-                    return valid[valid.length-1];
-                }
-
-                let highVal=-1;
-                let trickHasPenalty=trick.some(t=>isPenalty(t.card));
-                for(let t of trick){
-                    if(t.card.suit===trickSuit&&t.card.value>highVal)highVal=t.card.value;
-                }
-
+                let valid=findValidMoves(p);if(valid.length===0)return null;if(valid.length===1)return valid[0];
+                if(trick.length===0){let safe=valid.filter(c=>c.suit!==3&&!(c.suit===2&&c.rank==='Q'));return safe.length>0?safe[0]:valid[valid.length-1];}
+                let highVal=-1;for(let t of trick){if(t.card.suit===trickSuit&&t.card.value>highVal)highVal=t.card.value;}
                 let followsuit=valid.filter(c=>c.suit===trickSuit);
-                if(followsuit.length>0){
-                    let safe=followsuit.filter(c=>c.value<highVal);
-                    if(safe.length>0)return safe[safe.length-1];
-                    return followsuit[0];
+                if(followsuit.length>0){let safe=followsuit.filter(c=>c.value<highVal);return safe.length>0?safe[safe.length-1]:followsuit[0];}
+                let safe=valid.filter(c=>!isPenalty(c));return safe.length>0?safe[0]:valid[valid.length-1];
+            }
+            function aiPassSelect(p){let h=[...hands[p]];h.sort((a,b)=>{let sa=isPenalty(a)?100+a.value:a.value,sb=isPenalty(b)?100+b.value:b.value;return sb-sa;});return h.slice(0,3);}
+
+            // ===== Tips =====
+            function getTip(){
+                if(phase==='passing'){
+                    let hasQS=hands[0].some(c=>c.suit===2&&c.rank==='Q');
+                    let hh=hands[0].filter(c=>c.suit===3&&c.value>=11).length;
+                    if(hasQS)return'Tip: Pass the Q\u2660 to avoid 13 penalty points!';
+                    if(hh>=2)return'Tip: Pass high Hearts to avoid taking tricks.';
+                    return'Tip: Pass your highest cards to opponents.';
                 }
-
-                let safe=valid.filter(c=>!isPenalty(c));
-                if(safe.length>0)return safe[0];
-                return valid[valid.length-1];
+                if(phase==='playing'&&currentPlayer===0){
+                    let valid=findValidMoves(0);
+                    if(valid.length>1&&valid.some(c=>isPenalty(c)))return'Tip: Avoid penalty cards (Hearts, Q\u2660)!';
+                    if(firstTrick)return'Tip: First trick - no penalties allowed!';
+                    if(!heartsBroken)return'Tip: Hearts not broken yet - lead a non-Heart.';
+                    if(hands[0].length<=4)return'Tip: End game - watch what opponents have!';
+                }
+                return'';
             }
 
-            function aiPassSelect(p){
-                let hand=[...hands[p]];
-                hand.sort((a,b)=>{
-                    let sa=isPenalty(a)?100+a.value:a.value;
-                    let sb=isPenalty(b)?100+b.value:b.value;
-                    return sb-sa;
-                });
-                return hand.slice(0,3);
+            // ===== Card Animation =====
+            function animCard(card,fromP,toP,dur,cb){
+                let fp=getPlayerPos(fromP),tp=toP===-1?{x:W/2,y:H/2-10}:getPlayerPos(toP);
+                cardAnim={card,fx:fp.x,fy:fp.y,tx:tp.x,ty:tp.y,t:0,dur:dur,cb:cb};
+                animating=true;
+            }
+            function getPlayerPos(p){
+                if(p===0)return{x:W/2,y:H-50};
+                if(p===1)return{x:60,y:H/2};
+                if(p===2)return{x:W/2,y:100};
+                return{x:W-60,y:H/2};
             }
 
+            // ===== Game Logic =====
             function executePassing(){
-                let passFrom=[[1,2,3,0],[3,0,1,2],[2,3,0,1]];
-                let dir=passFrom[passDir];
+                let passMap=[[1,2,3,0],[3,0,1,2],[2,3,0,1]];
+                let dir=passMap[passDir];
                 let passed=[[],[],[],[]];
                 passed[0]=[...passSelection];
                 for(let i=1;i<4;i++)passed[i]=aiPassSelect(i);
 
-                let tempHands=[[],[],[],[]];
-                for(let i=0;i<4;i++)tempHands[i]=[...hands[i]];
-                for(let i=0;i<4;i++){
-                    let target=dir[i];
-                    for(let c of passed[i]){
-                        let idx=tempHands[i].findIndex(x=>x===c);
-                        if(idx>=0){
-                            tempHands[i].splice(idx,1);
-                            tempHands[target].push(c);
-                        }
+                phase='passanim';msg='Passing cards...';
+                let queue=[];
+                for(let i=0;i<4;i++){let tgt=dir[i];for(let c of passed[i])queue.push({card:c,from:i,to:tgt});}
+                sfxPass();
+
+                let qi=0;
+                function doNext(){
+                    if(qi>=queue.length){
+                        // Apply passes
+                        let th=[[],[],[],[]];for(let i=0;i<4;i++)th[i]=[...hands[i]];
+                        for(let i=0;i<4;i++){let tgt=dir[i];for(let c of passed[i]){let idx=th[i].findIndex(x=>x===c);if(idx>=0){th[i].splice(idx,1);th[tgt].push(c);}}}
+                        for(let i=0;i<4;i++){hands[i]=th[i];sortHand(i);}
+                        startPlay();return;
                     }
+                    let q=queue[qi++];
+                    animCard(q.card,q.from,q.to,280,()=>doNext());
                 }
-                for(let i=0;i<4;i++){hands[i]=tempHands[i];sortHand(i);}
-
-                phase='playing';
-                currentPlayer=-1;
-                for(let i=0;i<4;i++){
-                    if(hasTwoClubs(i)){currentPlayer=i;break;}
-                }
-                msg=currentPlayer===0?'Your turn - lead with 2\u2663':'Opponents playing...';
-                if(currentPlayer!==0){
-                    animating=true;
-                    draw();
-                    setTimeout(()=>{animating=false;aiTurn();},600);
-                } else {
-                    animating=false;
-                }
+                doNext();
             }
 
-            function startTrick(){
-                trick=[];trickSuit=-1;
-                if(currentPlayer!==0)aiTurn();
+            function startPlay(){
+                phase='playing';currentPlayer=-1;
+                for(let i=0;i<4;i++){if(hasTwoClubs(i)){currentPlayer=i;break;}}
+                msg=currentPlayer===0?'Lead with 2\u2663':'Waiting...';
+                if(currentPlayer!==0){animating=true;draw();setTimeout(()=>{animating=false;aiTurn();},400);}
+                else animating=false;
+                draw();
             }
+
+            function startTrick(){trick=[];trickSuit=-1;if(currentPlayer!==0)aiTurn();}
 
             function aiTurn(){
                 if(animating||phase!=='playing')return;
                 animating=true;
-                draw();
-                setTimeout(()=>{
-                    let move=aiDecide(currentPlayer);
-                    if(move){
-                        if(trick.length===0)trickSuit=move.suit;
-                        playCard(currentPlayer,move);
-                        sfxCardPlay();
+                let move=aiDecide(currentPlayer);
+                if(move){
+                    if(trick.length===0)trickSuit=move.suit;
+                    animCard(move,currentPlayer,-1,320,()=>{
+                        playCard(currentPlayer,move);sfxPlay();
                         if(move.suit===3)heartsBroken=true;
-                    }
-                    advanceTurn();
-                },450);
+                        animating=false;advanceTurn();
+                    });
+                } else animating=false;
             }
 
             function advanceTurn(){
                 if(trick.length===4){
                     let result=evaluateTrick();
-                    sfxWinTrick();
                     roundScores[result.winner]+=result.pts;
-                    trickNum++;
-                    firstTrick=false;
-                    currentPlayer=result.winner;
-                    if(hands[0].length===0){
-                        endRound();return;
-                    }
-                    trick=[];
-                    animating=false;
-                    if(currentPlayer!==0){
-                        msg='Opponent won trick, playing...';
-                        draw();
-                        setTimeout(()=>{startTrick();draw();},700);
-                    } else {
-                        msg='Your turn - lead a card';
-                        draw();
-                    }
+                    trickNum++;firstTrick=false;currentPlayer=result.winner;
+                    if(result.pts>0)sfxWin();
+                    if(hands[0].length===0){endRound();return;}
+                    msg=PNAME[result.winner]+' won trick'+(result.pts>0?' ('+result.pts+' pts)':'')+'!';
+                    // Trick clear animation
+                    trickClearAnim={t:0,dur:500,winner:result.winner,cb:()=>{
+                        trick=[];
+                        if(currentPlayer!==0){
+                            msg+=' Next trick...';
+                            draw();setTimeout(()=>{startTrick();draw();},300);
+                        } else {
+                            msg='Your turn - lead a card';
+                            animating=false;draw();
+                        }
+                    }};
+                    animating=true;
                 } else {
                     currentPlayer=(currentPlayer+1)%4;
-                    if(currentPlayer!==0){
-                        aiTurn();
-                    } else {
-                        animating=false;
-                        msg='Your turn - play a card';
-                        draw();
-                    }
+                    if(currentPlayer!==0)aiTurn();
+                    else{animating=false;msg='Your turn - play a card';draw();}
                 }
             }
 
@@ -3232,353 +3151,317 @@ function startPoker(container, W, H) {
                 let shotMoon=-1;
                 for(let i=0;i<4;i++){if(roundScores[i]===26){shotMoon=i;break;}}
                 if(shotMoon>=0){
-                    sfxShootMoon();
-                    for(let i=0;i<4;i++){
-                        scores[i]+=i===shotMoon?0:26;
-                        roundScores[i]=i===shotMoon?0:26;
-                    }
-                    msg=(shotMoon===0?'You shot the moon!':'Player '+['You','Left','Top','Right'][shotMoon]+' shot the moon!');
+                    sfxMoon();
+                    for(let i=0;i<4;i++){scores[i]+=i===shotMoon?0:26;roundScores[i]=i===shotMoon?0:26;}
+                    msg=(shotMoon===0?'You shot the moon!':PNAME[shotMoon]+' shot the moon!');
                 } else {
                     for(let i=0;i<4;i++)scores[i]+=roundScores[i];
                     msg='Round complete!';
                 }
-                let isGameOver=scores.some(s=>s>=100);
-                if(isGameOver){
-                    sfxGameOver();
-                    stopBGMusic();
-                    let winner=0,minScore=scores[0];
-                    for(let i=1;i<4;i++){if(scores[i]<minScore){minScore=scores[i];winner=i;}}
-                    phase='gameover';
-                    msg=['You','Left','Top','Right'][winner]+' wins with '+minScore+' points!';
-                    msg2='Click to play again';
+                if(scores.some(s=>s>=100)){
+                    sfxGameOver();stopBG();
+                    let w=0,ms=scores[0];for(let i=1;i<4;i++){if(scores[i]<ms){ms=scores[i];w=i;}}
+                    phase='gameover';msg=PNAME[w]+' wins with '+ms+' points!';msg2='Click to play again';
                 }
                 draw();
             }
 
             function startRound(){
-                deal();
-                heartsBroken=false;firstTrick=true;trickNum=0;
-                roundScores=[0,0,0,0];
-                if(passDir!==3){
-                    phase='passing';passSelection=[];
-                    msg='Select 3 cards to pass '+['left','right','across',''][passDir];
-                } else {
-                    phase='playing';currentPlayer=-1;
-                    for(let i=0;i<4;i++){if(hasTwoClubs(i)){currentPlayer=i;break;}}
-                    msg=currentPlayer===0?'Your turn - lead with 2\u2663':'Opponents playing...';
-                    if(currentPlayer!==0){
-                        animating=true;
-                        setTimeout(()=>aiTurn(),600);
-                    }
-                }
+                deal();heartsBroken=false;firstTrick=true;trickNum=0;roundScores=[0,0,0,0];
+                if(passDir!==3){phase='passing';passSelection=[];}
+                else{phase='playing';currentPlayer=-1;for(let i=0;i<4;i++){if(hasTwoClubs(i)){currentPlayer=i;break;}}msg=currentPlayer===0?'Lead with 2\u2663':'Waiting...';if(currentPlayer!==0){animating=true;setTimeout(()=>aiTurn(),400);}else animating=false;}
                 trick=[];animating=false;msg2='';
             }
 
             function resetGame(){
-                scores=[0,0,0,0];phase='choosing';passSelection=[];
-                msg='Choose pass direction';msg2='';
-                startBGMusic();draw();
+                scores=[0,0,0,0];phase='choosing';passDir=0;passSelection=[];
+                msg='Choose pass direction';msg2='';startBG();draw();
             }
 
             // ===== Drawing =====
             function roundRect(x,y,w,h,r){
-                ctx.beginPath();
-                ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-                ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-                ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-                ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
-                ctx.closePath();
+                ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+                ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y);ctx.lineTo(x+r,y+h);
+                ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
             }
-
             function drawCard(c,x,y,w,h,faceUp,selected){
                 if(!faceUp){
-                    ctx.fillStyle='#1a3a6a';
-                    roundRect(x,y,w,h,4);ctx.fill();
-                    ctx.strokeStyle='#2a5aaa';ctx.lineWidth=1.5;
-                    roundRect(x,y,w,h,4);ctx.stroke();
-                    ctx.fillStyle='#3a6aba';ctx.font=Math.floor(w*0.35)+'px serif';
-                    ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('\uD83C\uDCA0',x+w/2,y+h/2);
-                    return;
+                    ctx.fillStyle='#1a3a6a';roundRect(x,y,w,h,3);ctx.fill();
+                    ctx.strokeStyle='#2a5aaa';ctx.lineWidth=1;roundRect(x,y,w,h,3);ctx.stroke();
+                    ctx.fillStyle='#3a6aba';ctx.font=Math.floor(w*0.28)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('\uD83C\uDCA0',x+w/2,y+h/2);return;
                 }
-                ctx.fillStyle=selected?'#ffffaa':'#fff';
-                roundRect(x,y,w,h,4);ctx.fill();
+                ctx.fillStyle=selected?'#ffffaa':'#fff';roundRect(x,y,w,h,3);ctx.fill();
                 let isRed=c.suit===1||c.suit===3;
-                ctx.strokeStyle=selected?'#ffcc00':'#999';ctx.lineWidth=selected?2:1;
-                roundRect(x,y,w,h,4);ctx.stroke();
+                ctx.strokeStyle=selected?'#ffcc00':'#999';ctx.lineWidth=selected?2:1;roundRect(x,y,w,h,3);ctx.stroke();
                 ctx.fillStyle=isRed?'#cc0000':'#000';
-                ctx.textAlign='left';ctx.textBaseline='top';
-                ctx.font='bold '+Math.floor(w*0.3)+'px "VT323",monospace';
+                ctx.textAlign='left';ctx.textBaseline='top';ctx.font='bold '+Math.floor(w*0.26)+'px "VT323",monospace';
                 ctx.fillText(c.rank,x+w*0.08,y+h*0.04);
-                ctx.font=Math.floor(w*0.45)+'px serif';
-                ctx.fillText(SUITS[c.suit],x+w*0.1,y+h*0.32);
-                ctx.textAlign='right';ctx.textBaseline='bottom';
-                ctx.font='bold '+Math.floor(w*0.3)+'px "VT323",monospace';
+                ctx.font=Math.floor(w*0.38)+'px serif';ctx.fillText(SUITS[c.suit],x+w*0.1,y+h*0.32);
+                ctx.textAlign='right';ctx.textBaseline='bottom';ctx.font='bold '+Math.floor(w*0.26)+'px "VT323",monospace';
                 ctx.fillText(c.rank,x+w*0.92,y+h*0.96);
             }
 
             function draw(){
                 ctx.fillStyle='#0a5c2a';ctx.fillRect(0,0,W,H);
-
-                let cx=W/2, cy=H/2;
+                let cx=W/2,cy=H/2;
                 let cardW=Math.max(40,Math.min(58,W*0.05));
                 let cardH=Math.floor(cardW*1.45);
+                let oppW=Math.floor(cardW*0.42);
+                let oppH=Math.floor(cardH*0.42);
 
-                // Score bar
-                ctx.fillStyle='rgba(0,0,0,0.5)';
-                roundRect(W*0.1,4,W*0.8,28,6);ctx.fill();
-                ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                ctx.fillText('YOU:'+scores[0]+'   LEFT:'+scores[1]+'   TOP:'+scores[2]+'   RIGHT:'+scores[3],cx,18);
+                // ===== Score Panel =====
+                ctx.fillStyle='rgba(0,0,0,0.6)';roundRect(W*0.06,3,W*0.88,32,8);ctx.fill();
+                for(let i=0;i<4;i++){
+                    let sx=W*0.12+i*W*0.22;
+                    ctx.fillStyle=i===0?'#ffdd00':'#ccc';ctx.font='bold 9px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(PNAME[i],sx,11);
+                    ctx.fillStyle='#fff';ctx.font='11px "Press Start 2P",monospace';
+                    ctx.fillText(scores[i]+'',sx,25);
+                    if((phase==='playing'||phase==='passing'||phase==='passanim')&&roundScores[i]>0){
+                        ctx.fillStyle='#ff6666';ctx.font='8px "Press Start 2P",monospace';ctx.fillText('+'+roundScores[i],sx+24,25);
+                    }
+                }
+                // Status bar
+                if(phase==='playing'){
+                    ctx.fillStyle=heartsBroken?'#ff4444':'#666';ctx.font='7px "Press Start 2P",monospace';ctx.textAlign='right';
+                    ctx.fillText(heartsBroken?'Hearts: BROKEN':'Hearts: intact',W-8,16);
+                    ctx.fillStyle='#888';ctx.textAlign='left';ctx.fillText('Trick '+(trickNum+1)+'/13',8,16);
+                }
 
-                // Opponent positions
-                let topY=80;
-                let oppCardW=Math.floor(cardW*0.45);
-                let oppCardH=Math.floor(cardH*0.45);
-
-                // Top opponent
+                // ===== Opponents =====
+                // Top
                 let topCount=hands[2].length;
                 if(topCount>0){
-                    let topSpacing=Math.min(oppCardW*0.4,W*0.7/(topCount));
-                    let topStart=cx-((topCount-1)*topSpacing)/2;
-                    for(let i=0;i<topCount;i++){
-                        drawCard(null,topStart+i*topSpacing,topY,oppCardW,oppCardH,false);
-                    }
-                    ctx.fillStyle=2===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
-                    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('TOP ['+topCount+']',cx,topY+oppCardH+14);
+                    let topY=70;
+                    let sp=Math.min(oppW*0.38,W*0.55/topCount);
+                    let st=cx-((topCount-1)*sp)/2;
+                    for(let i=0;i<topCount;i++)drawCard(null,st+i*sp,topY,oppW,oppH,false);
+                    ctx.fillStyle=currentPlayer===2&&phase==='playing'?'#ffff00':'#888';
+                    ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText(PNAME[2]+' ['+topCount+']',cx,topY+oppH+10);
                 }
-
-                // Left opponent
-                let leftX=20;
+                // Left
                 let leftCount=hands[1].length;
                 if(leftCount>0){
-                    let leftSpacing=Math.min(10,(H-160)/leftCount);
-                    let leftStartY=cy-((leftCount-1)*leftSpacing)/2;
-                    for(let i=0;i<leftCount;i++){
-                        drawCard(null,leftX,leftStartY+i*leftSpacing,oppCardW,oppCardH,false);
-                    }
-                    ctx.fillStyle=1===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
-                    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('LEFT',leftX+oppCardW/2,leftStartY-12);
-                    ctx.fillText('['+leftCount+']',leftX+oppCardW/2,leftStartY-1);
+                    let lx=12;
+                    let lsp=Math.min(8,H*0.45/leftCount);
+                    let lsy=cy-((leftCount-1)*lsp)/2;
+                    for(let i=0;i<leftCount;i++)drawCard(null,lx,lsy+i*lsp,oppH,oppW,false);
+                    ctx.fillStyle=currentPlayer===1&&phase==='playing'?'#ffff00':'#888';
+                    ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText(PNAME[1]+' ['+leftCount+']',lx+oppH/2,lsy-8);
                 }
-
-                // Right opponent
-                let rightX=W-oppCardW-20;
+                // Right
                 let rightCount=hands[3].length;
                 if(rightCount>0){
-                    let rightSpacing=Math.min(10,(H-160)/rightCount);
-                    let rightStartY=cy-((rightCount-1)*rightSpacing)/2;
-                    for(let i=0;i<rightCount;i++){
-                        drawCard(null,rightX,rightStartY+i*rightSpacing,oppCardW,oppCardH,false);
+                    let rx=W-oppH-12;
+                    let rsp=Math.min(8,H*0.45/rightCount);
+                    let rsy=cy-((rightCount-1)*rsp)/2;
+                    for(let i=0;i<rightCount;i++)drawCard(null,rx,rsy+i*rsp,oppH,oppW,false);
+                    ctx.fillStyle=currentPlayer===3&&phase==='playing'?'#ffff00':'#888';
+                    ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText(PNAME[3]+' ['+rightCount+']',rx+oppH/2,rsy-8);
+                }
+
+                // ===== Trick Area =====
+                if(!trickClearAnim){
+                    let ts=cardW*0.5;
+                    for(let t of trick){
+                        let tx,ty;
+                        if(t.player===0){tx=cx-ts/2;ty=cy+10;}
+                        else if(t.player===1){tx=cx-ts-cardW-5;ty=cy-cardH/2-8;}
+                        else if(t.player===2){tx=cx-ts/2;ty=cy-cardH-12;}
+                        else{tx=cx+ts+5;ty=cy-cardH/2-8;}
+                        drawCard(t.card,tx,ty,cardW,cardH,true,false);
                     }
-                    ctx.fillStyle=3===currentPlayer&&phase==='playing'?'#ffff00':'#aaa';
-                    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('RIGHT',rightX+oppCardW/2,rightStartY-12);
-                    ctx.fillText('['+rightCount+']',rightX+oppCardW/2,rightStartY-1);
                 }
 
-                // Trick area (center)
-                let trickSpacing=cardW*0.6;
-                for(let t of trick){
-                    let tx,ty;
-                    if(t.player===0){tx=cx-trickSpacing/2;ty=cy+20;}
-                    else if(t.player===1){tx=cx-trickSpacing-cardW-10;ty=cy-cardH/2;}
-                    else if(t.player===2){tx=cx-trickSpacing/2;ty=cy-cardH-10;}
-                    else{tx=cx+trickSpacing+10;ty=cy-cardH/2;}
-                    drawCard(t.card,tx,ty,cardW,cardH,true,false);
-                    let isRed=t.card.suit===1||t.card.suit===3;
-                    ctx.fillStyle=isRed?'#ff6666':'#aaa';ctx.font='9px "VT323",monospace';
-                    ctx.textAlign='center';
-                    let names=['YOU','L','T','R'];
-                    ctx.fillText(names[t.player],tx+cardW/2,ty+cardH+10);
-                }
-
-                // Player hand
-                let playerHand=hands[0];
-                if(playerHand.length>0){
-                    let handY=H-cardH-20;
-                    let maxW=W-60;
-                    let overlap=Math.max(0,(playerHand.length*cardW-maxW)/(playerHand.length-1||1));
-                    overlap=Math.min(overlap,cardW*0.65);
-                    let totalW=playerHand.length*(cardW-overlap)+overlap;
-                    let startX=cx-totalW/2;
-
-                    for(let i=0;i<playerHand.length;i++){
-                        let c=playerHand[i];
-                        let x=startX+i*(cardW-overlap);
+                // ===== Player Hand =====
+                let ph=hands[0];
+                if(ph.length>0){
+                    let hy=H-cardH-22;
+                    let mw=W-70;
+                    let ov=Math.max(0,(ph.length*cardW-mw)/(ph.length-1||1));
+                    ov=Math.min(ov,cardW*0.62);
+                    let tw=ph.length*(cardW-ov)+ov;
+                    let sx=cx-tw/2;
+                    let vm=(phase==='playing'&&currentPlayer===0&&!animating)?findValidMoves(0):[];
+                    for(let i=0;i<ph.length;i++){
+                        let c=ph[i],x=sx+i*(cardW-ov);
                         let isSel=passSelection.indexOf(c)>=0;
-                        let isValid=phase==='playing'&&currentPlayer===0&&!animating&&findValidMoves(0).some(fc=>fc===c);
-                        let yOff=(isSel&&phase==='passing')?-12:0;
-                        drawCard(c,x,handY+yOff,cardW,cardH,true,isSel);
+                        let isValid=vm.some(fc=>fc===c);
+                        let yo=(isSel&&phase==='passing')?-14:0;
+                        if(isValid&&!isSel){ctx.shadowColor='#44ff44';ctx.shadowBlur=5;}
+                        drawCard(c,x,hy+yo,cardW,cardH,true,isSel);
+                        ctx.shadowBlur=0;
                         if(!isValid&&phase==='playing'&&currentPlayer===0&&!animating){
-                            ctx.fillStyle='rgba(0,0,0,0.25)';
-                            roundRect(x,handY+yOff,cardW,cardH,4);ctx.fill();
+                            ctx.fillStyle='rgba(0,0,0,0.3)';roundRect(x,hy+yo,cardW,cardH,3);ctx.fill();
                         }
                     }
-                    ctx.fillStyle='#ffff00';ctx.font='10px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('YOU ['+playerHand.length+']',cx,handY-6);
+                    ctx.fillStyle='#ffdd00';ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';
+                    ctx.fillText(PNAME[0]+' ['+ph.length+']',cx,hy-6);
                 }
 
-                // Message bar
-                if(msg&&phase!=='choosing'&&phase!=='passing'){
-                    ctx.fillStyle='rgba(0,0,0,0.65)';
-                    roundRect(cx-220,cy-cardH/2-30,440,28,6);ctx.fill();
-                    ctx.fillStyle='#ffff00';ctx.font='bold 12px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText(msg,cx,cy-cardH/2-16);
-                }
-                if(msg2&&phase!=='choosing'&&phase!=='passing'){
-                    ctx.fillStyle='#00ff88';ctx.font='11px "Press Start 2P",monospace';
-                    ctx.fillText(msg2,cx,cy-cardH/2+2);
+                // ===== Card Animation (on top) =====
+                if(cardAnim){
+                    let t=Math.min(cardAnim.t/cardAnim.dur,1);
+                    let e=t<0.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);
+                    let px=cardAnim.fx+(cardAnim.tx-cardAnim.fx)*e;
+                    let py=cardAnim.fy+(cardAnim.ty-cardAnim.fy)*e;
+                    ctx.globalAlpha=0.95;
+                    drawCard(cardAnim.card,px-cardW/2,py-cardH/2,cardW,cardH,true,false);
+                    ctx.globalAlpha=1;
                 }
 
-                // Scoring overlay
-                if(phase==='scoring'||phase==='gameover'){
-                    ctx.fillStyle='rgba(0,0,0,0.8)';
-                    roundRect(cx-180,cy-130,360,260,10);ctx.fill();
-                    ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
-                    roundRect(cx-180,cy-130,360,260,10);ctx.stroke();
-                    ctx.fillStyle='#ffd700';ctx.font='bold 16px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText(phase==='gameover'?'GAME OVER':'ROUND SCORES',cx,cy-110);
-                    ctx.font='14px "Press Start 2P",monospace';
-                    for(let i=0;i<4;i++){
-                        let py=cy-70+i*38;
-                        ctx.fillStyle=i===0?'#ffff00':'#ffffff';
-                        ctx.fillText(['YOU','LEFT','TOP','RIGHT'][i]+': '+scores[i]+' ('+roundScores[i]+')',cx,py);
+                // ===== Trick Clear Animation =====
+                if(trickClearAnim){
+                    let t=Math.min(trickClearAnim.t/trickClearAnim.dur,1);
+                    ctx.globalAlpha=1-t*0.6;
+                    let fy=t*25,ts2=cardW*0.5;
+                    for(let ti=0;ti<trick.length;ti++){
+                        let tt=trick[ti],tx,ty;
+                        if(tt.player===0){tx=cx-ts2/2;ty=cy+10-fy;}
+                        else if(tt.player===1){tx=cx-ts2-cardW-5;ty=cy-cardH/2-8-fy;}
+                        else if(tt.player===2){tx=cx-ts2/2;ty=cy-cardH-12-fy;}
+                        else{tx=cx+ts2+5;ty=cy-cardH/2-8-fy;}
+                        drawCard(tt.card,tx,ty,cardW,cardH,true,false);
                     }
-                    ctx.fillStyle='#00ff88';ctx.font='11px "Press Start 2P",monospace';
+                    ctx.globalAlpha=1;
+                }
+
+                // ===== Tip Bar =====
+                let tip=getTip();
+                if(tip&&!animating&&(phase==='playing'||phase==='passing')){
+                    ctx.fillStyle='rgba(0,60,0,0.75)';roundRect(8,H-68,W-16,18,4);ctx.fill();
+                    ctx.fillStyle='#aaffaa';ctx.font='8px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(tip,cx,H-59);
+                }
+
+                // ===== Message =====
+                if(msg&&(phase==='playing'||phase==='passanim')){
+                    ctx.fillStyle='rgba(0,0,0,0.7)';roundRect(cx-230,cy-cardH-50,460,24,5);ctx.fill();
+                    ctx.fillStyle='#ffff00';ctx.font='bold 10px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(msg,cx,cy-cardH-38);
+                }
+
+                // ===== Turn Indicator =====
+                if(phase==='playing'&&!animating&&currentPlayer===0){
+                    ctx.fillStyle='rgba(0,255,100,0.08)';ctx.fillRect(0,H-cardH-28,W,cardH+28);
+                    ctx.strokeStyle='rgba(0,255,100,0.25)';ctx.lineWidth=1;ctx.strokeRect(2,H-cardH-26,W-4,cardH+24);
+                }
+
+                // ===== Scoring Overlay =====
+                if(phase==='scoring'||phase==='gameover'){
+                    ctx.fillStyle='rgba(0,0,0,0.85)';roundRect(cx-180,cy-130,360,260,10);ctx.fill();
+                    ctx.strokeStyle='#ffd700';ctx.lineWidth=2;roundRect(cx-180,cy-130,360,260,10);ctx.stroke();
+                    ctx.fillStyle='#ffd700';ctx.font='bold 14px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText(phase==='gameover'?'GAME OVER':'ROUND SCORES',cx,cy-108);
+                    for(let i=0;i<4;i++){
+                        let py=cy-65+i*38;
+                        ctx.fillStyle=i===0?'#ffff00':'#fff';ctx.font='bold 11px "Press Start 2P",monospace';
+                        ctx.fillText(PNAME[i],cx-55,py);
+                        ctx.fillText(scores[i]+'',cx+55,py);
+                        ctx.fillStyle='#aaa';ctx.font='9px "Press Start 2P",monospace';
+                        ctx.fillText('('+roundScores[i]+')',cx,py+15);
+                    }
+                    ctx.fillStyle='#88ff88';ctx.font='9px "Press Start 2P",monospace';
                     ctx.fillText('Click to '+(phase==='gameover'?'play again':'continue'),cx,cy+100);
                 }
 
-                // Turn indicator
-                if(phase==='playing'&&!animating&&currentPlayer===0){
-                    ctx.fillStyle='rgba(0,255,100,0.15)';
-                    ctx.fillRect(0,H-cardH-22,W,cardH+22);
-                }
-
-                // Phase overlays (drawn LAST so they're on top)
+                // ===== Choosing Overlay =====
                 if(phase==='choosing'){
-                    ctx.fillStyle='rgba(0,0,0,0.75)';
-                    roundRect(cx-260,cy-90,520,180,10);ctx.fill();
-                    ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;
-                    roundRect(cx-260,cy-90,520,180,10);ctx.stroke();
-                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('CHOOSE PASS DIRECTION',cx,cy-62);
-                    ctx.fillStyle='#aaa';ctx.font='10px "Press Start 2P",monospace';
-                    ctx.fillText('Each round, pass 3 cards to an opponent',cx,cy-42);
-                    let btnLabels=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
-                    let btnColors=['#cc6600','#0066cc','#9966cc','#666666'];
+                    ctx.fillStyle='rgba(0,0,0,0.8)';roundRect(cx-250,cy-95,500,190,10);ctx.fill();
+                    ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;roundRect(cx-250,cy-95,500,190,10);ctx.stroke();
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('CHOOSE PASS DIRECTION',cx,cy-65);
+                    ctx.fillStyle='#aaa';ctx.font='8px "Press Start 2P",monospace';
+                    ctx.fillText('Pass 3 cards to an opponent each round',cx,cy-48);
+                    let bl=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
+                    let bc=['#cc6600','#0066cc','#9966cc','#666'];
                     for(let i=0;i<4;i++){
-                        let bx=cx-240+i*130;
-                        let by=cy-18;
-                        ctx.fillStyle=btnColors[i];
-                        roundRect(bx,by,120,36,6);ctx.fill();
-                        ctx.strokeStyle='#fff';ctx.lineWidth=1;
-                        roundRect(bx,by,120,36,6);ctx.stroke();
-                        ctx.fillStyle='#fff';ctx.font='bold 11px "Press Start 2P",monospace';
-                        ctx.textAlign='center';ctx.textBaseline='middle';
-                        ctx.fillText(btnLabels[i],bx+60,by+18);
+                        let bx=cx-235+i*125,by=cy-22;
+                        ctx.fillStyle=bc[i];roundRect(bx,by,115,36,6);ctx.fill();
+                        ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;roundRect(bx,by,115,36,6);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 9px "Press Start 2P",monospace';ctx.fillText(bl[i],bx+57,by+18);
                     }
-                } else if(phase==='passing'){
+                    ctx.fillStyle='#666';ctx.font='7px "Press Start 2P",monospace';
+                    ctx.fillText('Direction rotates: Left \u2192 Right \u2192 Across \u2192 None',cx,cy+28);
+                }
+
+                // ===== Passing Overlay =====
+                if(phase==='passing'){
                     let dirs=['\u2190 LEFT','\u2192 RIGHT','\u2195 ACROSS','NO PASS'];
-                    ctx.fillStyle='rgba(0,0,0,0.75)';
-                    roundRect(cx-180,cy-75,360,150,10);ctx.fill();
-                    ctx.strokeStyle='#88ff88';ctx.lineWidth=1;
-                    roundRect(cx-180,cy-75,360,150,10);ctx.stroke();
-                    ctx.fillStyle='#ffcc00';ctx.font='bold 14px "Press Start 2P",monospace';
-                    ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText('PASS '+dirs[passDir],cx,cy-50);
-                    ctx.fillStyle='#88ff88';ctx.font='12px "Press Start 2P",monospace';
-                    ctx.fillText('Select 3 cards ('+passSelection.length+'/3)',cx,cy-22);
+                    ctx.fillStyle='rgba(0,0,0,0.8)';roundRect(cx-190,cy-85,380,170,10);ctx.fill();
+                    ctx.strokeStyle='#88ff88';ctx.lineWidth=1;roundRect(cx-190,cy-85,380,170,10);ctx.stroke();
+                    ctx.fillStyle='#ffcc00';ctx.font='bold 13px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+                    ctx.fillText('PASS '+dirs[passDir],cx,cy-58);
+                    ctx.fillStyle='#88ff88';ctx.font='10px "Press Start 2P",monospace';
+                    ctx.fillText('Select 3 cards ('+passSelection.length+'/3)',cx,cy-32);
                     if(passSelection.length===3){
-                        let pbx=cx-60, pby=cy+5;
-                        ctx.fillStyle='#00aa00';
-                        roundRect(pbx,pby,120,36,8);ctx.fill();
-                        ctx.strokeStyle='#fff';ctx.lineWidth=2;
-                        roundRect(pbx,pby,120,36,8);ctx.stroke();
-                        ctx.fillStyle='#fff';ctx.font='bold 13px "Press Start 2P",monospace';
-                        ctx.fillText('\u25B6 PASS',cx,pby+18);
-                        ctx.fillStyle='#ffcc44';ctx.font='9px "Press Start 2P",monospace';
-                        ctx.fillText('or click a card to deselect',cx,pby+52);
+                        let pbx=cx-60,pby=cy-8;
+                        ctx.fillStyle='#00aa00';roundRect(pbx,pby,120,34,7);ctx.fill();
+                        ctx.strokeStyle='#fff';ctx.lineWidth=2;roundRect(pbx,pby,120,34,7);ctx.stroke();
+                        ctx.fillStyle='#fff';ctx.font='bold 12px "Press Start 2P",monospace';ctx.fillText('\u25B6 PASS',cx,pby+17);
+                        ctx.fillStyle='#ffcc44';ctx.font='7px "Press Start 2P",monospace';ctx.fillText('or click cards to deselect',cx,pby+48);
                     }
                 }
             }
 
-            // ===== Click handling =====
-            function getCardAtPos(mx,my){
-                let playerHand=hands[0];
-                if(!playerHand.length)return-1;
-                let cx=W/2;
-                let cardW=Math.max(40,Math.min(58,W*0.05));
-                let cardH=Math.floor(cardW*1.45);
-                let handY=H-cardH-20;
-                let maxW=W-60;
-                let overlap=Math.max(0,(playerHand.length*cardW-maxW)/(playerHand.length-1||1));
-                overlap=Math.min(overlap,cardW*0.65);
-                let totalW=playerHand.length*(cardW-overlap)+overlap;
-                let startX=cx-totalW/2;
-                for(let i=0;i<playerHand.length;i++){
-                    let x=startX+i*(cardW-overlap);
-                    let isSel=passSelection.indexOf(playerHand[i])>=0;
-                    let yOff=(isSel&&phase==='passing')?-12:0;
-                    if(mx>=x&&mx<=x+cardW&&my>=handY+yOff&&my<=handY+yOff+cardH)return i;
-                }
-                return-1;
-            }
-
+            // ===== Click Handling =====
             canvas.addEventListener('click',e=>{
                 if(animating)return;
                 let rect=canvas.getBoundingClientRect();
                 let mx=(e.clientX-rect.left)*(canvas.width/rect.width);
                 let my=(e.clientY-rect.top)*(canvas.height/rect.height);
+                let cx=W/2,cy=H/2;
 
                 if(phase==='scoring'||phase==='gameover'){
-                    sfxButtonClick();
+                    sfxBtn();
                     if(phase==='gameover')resetGame();
-                    else{phase='choosing';passSelection=[];}
+                    else{passDir=(passDir+1)%4;phase='choosing';passSelection=[];}
                     draw();return;
                 }
 
                 if(phase==='choosing'){
-                    let cx2=W/2;
-                    let cy2=H/2;
-                    let btnLabels=['LEFT','RIGHT','ACROSS','NO PASS'];
                     for(let i=0;i<4;i++){
-                        let bx=cx2-240+i*130;
-                        let by=cy2-18;
-                        if(mx>=bx&&mx<=bx+120&&my>=by&&my<=by+36){
-                            sfxButtonClick();
-                            passDir=i;
-                            startRound();
-                            draw();return;
-                        }
+                        let bx=cx-235+i*125,by=cy-22;
+                        if(mx>=bx&&mx<=bx+115&&my>=by&&my<=by+36){sfxBtn();passDir=i;startRound();draw();return;}
                     }
                     return;
                 }
 
-                // PASS button click
                 if(phase==='passing'&&passSelection.length===3){
-                    let pbx=W/2-60, pby=H/2+5;
-                    if(mx>=pbx&&mx<=pbx+120&&my>=pby&&my<=pby+36){
-                        sfxButtonClick();
-                        animating=true;draw();
-                        setTimeout(function(){
-                            try{sfxPassCards();executePassing();}catch(e){console.error(e);animating=false;}
-                            draw();
-                        },300);
+                    let pbx=cx-60,pby=cy-8;
+                    if(mx>=pbx&&mx<=pbx+120&&my>=pby&&my<=pby+34){
+                        sfxBtn();animating=true;draw();
+                        setTimeout(()=>{try{executePassing();}catch(e){console.error(e);animating=false;}draw();},150);
                         return;
                     }
                 }
 
-                let idx=getCardAtPos(mx,my);
+                // Card click
+                let ph2=hands[0];if(ph2.length===0)return;
+                let hy2=H-cardH-22;
+                let mw2=W-70;
+                let ov2=Math.max(0,(ph2.length*cardW-mw2)/(ph2.length-1||1));
+                ov2=Math.min(ov2,cardW*0.62);
+                let tw2=ph2.length*(cardW-ov2)+ov2;
+                let sx2=cx-tw2/2;
+                let idx=-1;
+                for(let i=0;i<ph2.length;i++){
+                    let x=sx2+i*(cardW-ov2);
+                    let isSel=passSelection.indexOf(ph2[i])>=0;
+                    let yo=(isSel&&phase==='passing')?-14:0;
+                    if(mx>=x&&mx<=x+cardW&&my>=hy2+yo&&my<=hy2+yo+cardH){idx=i;break;}
+                }
                 if(idx<0)return;
                 let c=hands[0][idx];
 
                 if(phase==='passing'){
                     let pi=passSelection.indexOf(c);
-                    if(pi>=0){passSelection.splice(pi,1);sfxCardDeselect();}
-                    else if(passSelection.length<3){passSelection.push(c);sfxCardSelect();}
+                    if(pi>=0){passSelection.splice(pi,1);sfxDeselect();}
+                    else if(passSelection.length<3){passSelection.push(c);sfxSelect();}
                     draw();return;
                 }
 
@@ -3586,24 +3469,22 @@ function startPoker(container, W, H) {
                     let valid=findValidMoves(0);
                     if(valid.some(vc=>vc===c)){
                         if(trick.length===0)trickSuit=c.suit;
-                        playCard(0,c);
-                        sfxCardPlay();
-                        if(c.suit===3)heartsBroken=true;
-                        advanceTurn();
+                        animCard(c,0,-1,220,()=>{
+                            playCard(0,c);sfxPlay();
+                            if(c.suit===3)heartsBroken=true;
+                            animating=false;advanceTurn();draw();
+                        });
                         draw();
                     }
                 }
             });
 
-            canvas.setAttribute('tabindex','0');
-            canvas.focus();
-
-            container._cleanup=function(){stopBGMusic();audioCtx=null;};
+            canvas.setAttribute('tabindex','0');canvas.focus();
+            container._cleanup=function(){stopBG();audioCtx=null;};
 
             phase='choosing';passDir=0;passSelection=[];
             msg='Choose pass direction';msg2='';
-            startBGMusic();
-            draw();
+            startBG();draw();
         }
 
         /* =====================================================================

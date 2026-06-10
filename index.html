@@ -2952,7 +2952,7 @@ function startPoker(container, W, H) {
             const PNAME=['You','Left','Top','Right'];
             const canvas=document.createElement('canvas');
             canvas.width=W; canvas.height=H;
-            canvas.style.cssText='display:block;margin:auto;background:#0a5c2a;cursor:pointer;';
+            canvas.style.cssText='display:block;margin:auto;background:#0a5c2a;cursor:pointer;width:100%;height:100%;object-fit:contain;';
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 

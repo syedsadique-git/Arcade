@@ -3018,6 +3018,7 @@ function startPoker(container, W, H) {
             let phase='choosing';
             let passDir=0,passSelection=[],trickNum=0,heartsBroken=false,firstTrick=true;
             let msg='',msg2='',animating=false;
+            let cardW=Math.max(40,Math.min(58,W*0.05)),cardH=Math.floor(cardW*1.45);
 
             // Animation state
             let cardAnim=null;
@@ -3235,7 +3236,7 @@ function startPoker(container, W, H) {
             // ===== Drawing =====
             function roundRect(x,y,w,h,r){
                 ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-                ctx.lineTo(x+w,y+h-r);                ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+                ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
                 ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
             }
             function drawCard(c,x,y,w,h,faceUp,selected){
@@ -3259,8 +3260,6 @@ function startPoker(container, W, H) {
             function draw(){
                 ctx.fillStyle='#0a5c2a';ctx.fillRect(0,0,W,H);
                 let cx=W/2,cy=H/2;
-                let cardW=Math.max(40,Math.min(58,W*0.05));
-                let cardH=Math.floor(cardW*1.45);
                 let oppW=Math.floor(cardW*0.42);
                 let oppH=Math.floor(cardH*0.42);
 
@@ -3382,14 +3381,6 @@ function startPoker(container, W, H) {
                         drawCard(tt.card,tx,ty,cardW,cardH,true,false);
                     }
                     ctx.globalAlpha=1;
-                }
-
-                // ===== Tip Bar =====
-                let tip=getTip();
-                if(tip&&!animating&&(phase==='playing'||phase==='passing')){
-                    ctx.fillStyle='rgba(0,60,0,0.75)';roundRect(8,H-16,W-16,14,4);ctx.fill();
-                    ctx.fillStyle='#aaffaa';ctx.font='7px "Press Start 2P",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-                    ctx.fillText(tip,cx,H-9);
                 }
 
                 // ===== Message =====

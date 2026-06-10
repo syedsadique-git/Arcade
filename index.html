@@ -771,6 +771,11 @@
                     <span class="game-item-name">CONTRA</span>
                     <span class="game-item-tagline">Run, gun, survive.</span>
                 </div>
+                <div class="game-item" data-game="pingpong" data-tagline="Retro table tennis showdown.">
+                    <span class="game-item-icon">🏓</span>
+                    <span class="game-item-name">PING PONG</span>
+                    <span class="game-item-tagline">Retro table tennis showdown.</span>
+                </div>
             </div>
 
             <!-- Difficulty Selector -->
@@ -851,7 +856,8 @@
             checkers: { name: 'CHECKERS',     controls: '► CLICK to Select Piece ► CLICK destination to Move ► Jump to Capture ► Reach far end to Crown' },
             poker:    { name: 'TEXAS HOLD\'EM',        controls: '► FOLD / CHECK / CALL / RAISE ► Pre-flop, Flop, Turn, River ► Beat the Dealer ► Best 5-card hand wins' },
             cards:    { name: 'CARDS (HEARTS)',        controls: '► Click card to play ► Follow suit when possible ► Avoid Hearts and Queen of Spades ► First to 100 loses' },
-            contra:   { name: 'CONTRA',                controls: '► Arrow Keys to Move ► Z to Shoot ► X to Jump ► Collect Power-ups ► Destroy everything' }
+            contra:   { name: 'CONTRA',                controls: '► Arrow Keys to Move ► Z to Shoot ► X to Jump ► Collect Power-ups ► Destroy everything' },
+            pingpong: { name: 'PING PONG',             controls: '► Arrow Keys or W/S (2P) ► Score 7 to Win ► Action mode for wild twists' }
         };
 
         let currentGame = null;
@@ -1029,6 +1035,7 @@
             else if (gameKey === 'poker')    startPoker(gameFrame, gameW, gameH);
             else if (gameKey === 'cards')    startCards(gameFrame, gameW, gameH);
             else if (gameKey === 'contra')   startContra(gameFrame, gameW, gameH);
+            else if (gameKey === 'pingpong') startPingPong(gameFrame, gameW, gameH);
             else if (gameKey === 'secret')   startSecret(gameFrame, gameW, gameH);
 
             // Re-inject fullscreen btn (since innerHTML was cleared)
@@ -1618,7 +1625,7 @@
             let running=true;
             
             function reset(){bird={x:80,y:220,vy:0};pipes=[];score=0;frame=0;}
-            function addPipe(){let h=80+Math.random()*(H-200-gap);pipes.push({x:W,top:h,bot:h+gap});}
+            function addPipe(){let h=80+Math.random()*(H-200-gap);pipes.push({x:W,top:h,bot:h+gap,scored:false});}
             function flap(){bird.vy=-9;}
             function update(){
                 if(!running) return;
@@ -1630,7 +1637,7 @@
                 if(bird.y>H-30||bird.y<0){state='dead';if(score>best)best=score;}
                 pipes.forEach(p=>{
                     if(bird.x+14>p.x&&bird.x-14<p.x+pipeW&&(bird.y-14<p.top||bird.y+14>p.bot)){state='dead';if(score>best)best=score;}
-                    if(p.x+pipeW===Math.round(bird.x))score++;
+                    if(!p.scored&&p.x+pipeW<bird.x){p.scored=true;score++;}
                 });
                 document.getElementById('high-score').textContent=String(score).padStart(6,'0');
             }
@@ -4162,6 +4169,652 @@ function startPoker(container, W, H) {
         }
 
         /* =====================================================================
+           PING PONG
+        ===================================================================== */
+        function startPingPong(container, W, H) {
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            canvas.style.cssText = 'display:block;width:100%;height:100%;background:#0a0a1a;';
+            container.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+
+            let alive = true, raf = null;
+            const WIN_SCORE = 7;
+            const PW = 14, PH = 80;
+            const BALL_R = 8;
+            const PADDLE_SPEED = 6;
+            const INITIAL_BALL_SPEED = 5;
+
+            let mode = 'menu';
+            let twoPlayer = false;
+            let scoreL = 0, scoreR = 0;
+            let serving = true, serveDir = 1;
+            let gameOver = false, winner = '';
+            let actionRound = 0;
+            let actionName = '';
+            let actionActive = false;
+
+            let ball, pL, pR;
+            let keys = {};
+            let countdown = 0, countdownTimer = 0;
+
+            const actions = [
+                'Secret Wall', 'Fireball', 'Multiball', 'Big Ball Little Paddles',
+                'Fog Zone', 'Gravity Well', 'Bumper Ball'
+            ];
+
+            let extraBalls = [];
+            let bumpers = [];
+            let fogLeft = 0, fogRight = 0;
+            let gravWells = [];
+            let fireballActive = false, fireballSpeed = 0;
+            let wallX = 0, wallH = 0, wallVisible = false;
+            let bigBall = false;
+
+            function sfxPing() {
+                if (!soundEnabled) return;
+                const t = audioContext.currentTime;
+                const o = audioContext.createOscillator();
+                const g = audioContext.createGain();
+                o.connect(g); g.connect(audioContext.destination);
+                o.type = 'square'; o.frequency.setValueAtTime(660, t);
+                g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0, t + 0.06);
+                o.start(t); o.stop(t + 0.06);
+            }
+            function sfxPong() {
+                if (!soundEnabled) return;
+                const t = audioContext.currentTime;
+                const o = audioContext.createOscillator();
+                const g = audioContext.createGain();
+                o.connect(g); g.connect(audioContext.destination);
+                o.type = 'square'; o.frequency.setValueAtTime(440, t);
+                g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0, t + 0.06);
+                o.start(t); o.stop(t + 0.06);
+            }
+            function sfxScore() {
+                if (!soundEnabled) return;
+                const t = audioContext.currentTime;
+                const o = audioContext.createOscillator();
+                const g = audioContext.createGain();
+                o.connect(g); g.connect(audioContext.destination);
+                o.type = 'square';
+                o.frequency.setValueAtTime(523, t);
+                o.frequency.setValueAtTime(392, t + 0.12);
+                g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0, t + 0.3);
+                o.start(t); o.stop(t + 0.3);
+            }
+            function sfxWin() {
+                if (!soundEnabled) return;
+                const t = audioContext.currentTime;
+                [523,659,784,1047].forEach((f,i) => {
+                    const o = audioContext.createOscillator();
+                    const g = audioContext.createGain();
+                    o.connect(g); g.connect(audioContext.destination);
+                    o.type = 'square'; o.frequency.setValueAtTime(f, t + i*0.15);
+                    g.gain.setValueAtTime(0.15, t + i*0.15);
+                    g.gain.linearRampToValueAtTime(0, t + i*0.15 + 0.14);
+                    o.start(t + i*0.15); o.stop(t + i*0.15 + 0.14);
+                });
+            }
+
+            function initRound() {
+                const midY = H / 2;
+                pL = { x: 30, y: midY - PH / 2, w: PW, h: PH };
+                pR = { x: W - 30 - PW, y: midY - PH / 2, w: PW, h: PH };
+                const speed = INITIAL_BALL_SPEED + actionRound * 0.4;
+                ball = { x: W / 2, y: midY, vx: speed * serveDir, vy: (Math.random() - 0.5) * 4, r: BALL_R };
+                extraBalls = [];
+                bumpers = [];
+                gravWells = [];
+                fogLeft = 0; fogRight = 0;
+                fireballActive = false; fireballSpeed = 0;
+                wallVisible = false; bigBall = false;
+                serving = true; countdown = 3; countdownTimer = 0;
+
+                if (actionActive) {
+                    const a = actions[actionRound % actions.length];
+                    actionName = a;
+                    if (a === 'Big Ball Little Paddles') {
+                        bigBall = true;
+                        ball.r = BALL_R * 2;
+                        pL.h = PH * 0.5; pR.h = PH * 0.5;
+                        pL.y = midY - pL.h / 2; pR.y = midY - pR.h / 2;
+                    }
+                    if (a === 'Bumper Ball') {
+                        for (let i = 0; i < 5; i++) {
+                            bumpers.push({
+                                x: W / 2 + (Math.random() - 0.5) * 100,
+                                y: 60 + Math.random() * (H - 120),
+                                r: 12
+                            });
+                        }
+                    }
+                    if (a === 'Gravity Well') {
+                        for (let i = 0; i < 3; i++) {
+                            gravWells.push({
+                                x: W / 2 + (Math.random() - 0.5) * 120,
+                                y: 80 + Math.random() * (H - 160),
+                                r: 35, strength: (Math.random() - 0.5) * 0.15
+                            });
+                        }
+                    }
+                    if (a === 'Fog Zone') {
+                        fogLeft = W * 0.35; fogRight = W * 0.65;
+                    }
+                    if (a === 'Secret Wall') {
+                        wallX = W / 2;
+                        wallH = 60 + Math.random() * 80;
+                        wallVisible = false;
+                    }
+                    if (a === 'Fireball') {
+                        fireballActive = true; fireballSpeed = 0;
+                    }
+                    if (a === 'Multiball') {
+                        extraBalls.push(
+                            { x: W / 2, y: midY - 40, vx: speed * serveDir, vy: -2, r: BALL_R },
+                            { x: W / 2, y: midY + 40, vx: speed * serveDir, vy: 2, r: BALL_R }
+                        );
+                    }
+                } else {
+                    actionName = '';
+                }
+            }
+
+            function resetGame() {
+                scoreL = 0; scoreR = 0; actionRound = 0; actionActive = false;
+                gameOver = false; winner = '';
+                initRound();
+            }
+
+            function handleInput() {
+                if (mode === 'menu' || gameOver) return;
+                if (countdown > 0) return;
+
+                if (keys['ArrowUp'] || (twoPlayer && keys['w'])) {
+                    pL.y = Math.max(0, pL.y - PADDLE_SPEED);
+                }
+                if (keys['ArrowDown'] || (twoPlayer && keys['s'])) {
+                    pL.y = Math.min(H - pL.h, pL.y + PADDLE_SPEED);
+                }
+                if (twoPlayer) {
+                    if (keys['ArrowLeft']) {
+                        pR.y = Math.max(0, pR.y - PADDLE_SPEED);
+                    }
+                    if (keys['ArrowRight']) {
+                        pR.y = Math.min(H - pR.h, pR.y + PADDLE_SPEED);
+                    }
+                }
+            }
+
+            function aiMove() {
+                if (twoPlayer || countdown > 0) return;
+                const target = ball.y - pR.h / 2;
+                const diff = target - pR.y;
+                const speed = PADDLE_SPEED * 0.85 + actionRound * 0.05;
+                if (Math.abs(diff) > 4) {
+                    pR.y += Math.sign(diff) * Math.min(speed, Math.abs(diff));
+                }
+                pR.y = Math.max(0, Math.min(H - pR.h, pR.y));
+            }
+
+            function updateBall(b) {
+                if (countdown > 0) return;
+
+                if (fireballActive && b === ball) {
+                    const dx = b.x - W / 2, dy = b.y - H / 2;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 50) {
+                        fireballSpeed = Math.min(fireballSpeed + 0.005, 0.06);
+                        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                        const newSpd = spd * (1 + fireballSpeed);
+                        const angle = Math.atan2(b.vy, b.vx);
+                        b.vx = Math.cos(angle) * newSpd;
+                        b.vy = Math.sin(angle) * newSpd;
+                    }
+                }
+
+                if (gravWells.length > 0) {
+                    for (const gw of gravWells) {
+                        const dx = gw.x - b.x, dy = gw.y - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < gw.r && dist > 0) {
+                            b.vx += (dx / dist) * gw.strength;
+                            b.vy += (dy / dist) * gw.strength;
+                        }
+                    }
+                }
+
+                b.x += b.vx;
+                b.y += b.vy;
+
+                if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); sfxPing(); }
+                if (b.y + b.r > H) { b.y = H - b.r; b.vy = -Math.abs(b.vy); sfxPing(); }
+
+                if (wallVisible && b === ball) {
+                    if (b.x + b.r > wallX - 3 && b.x - b.r < wallX + 3 &&
+                        b.y > (H - wallH) / 2 && b.y < (H + wallH) / 2) {
+                        b.vx = -Math.abs(b.vx);
+                        sfxPing();
+                    }
+                }
+
+                for (const bmp of bumpers) {
+                    const dx = b.x - bmp.x, dy = b.y - bmp.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < b.r + bmp.r) {
+                        const angle = Math.atan2(dy, dx);
+                        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                        b.vx = Math.cos(angle) * spd;
+                        b.vy = Math.sin(angle) * spd;
+                        b.x = bmp.x + Math.cos(angle) * (b.r + bmp.r + 1);
+                        b.y = bmp.y + Math.sin(angle) * (b.r + bmp.r + 1);
+                        sfxPing();
+                    }
+                }
+
+                if (b.x - b.r < pL.x + pL.w && b.y > pL.y && b.y < pL.y + pL.h && b.vx < 0) {
+                    const hit = (b.y - (pL.y + pL.h / 2)) / (pL.h / 2);
+                    const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) * 1.05;
+                    const angle = hit * (Math.PI / 3);
+                    b.vx = Math.cos(angle) * spd;
+                    b.vy = Math.sin(angle) * spd;
+                    b.x = pL.x + pL.w + b.r;
+                    sfxPing();
+                }
+
+                if (b.x + b.r > pR.x && b.y > pR.y && b.y < pR.y + pR.h && b.vx > 0) {
+                    const hit = (b.y - (pR.y + pR.h / 2)) / (pR.h / 2);
+                    const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) * 1.05;
+                    const angle = hit * (Math.PI / 3);
+                    b.vx = -Math.cos(angle) * spd;
+                    b.vy = Math.sin(angle) * spd;
+                    b.x = pR.x - b.r;
+                    sfxPong();
+                }
+
+                if (b.x < -20) return 'right';
+                if (b.x > W + 20) return 'left';
+                return null;
+            }
+
+            function drawCourt() {
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.strokeStyle = '#1a3a5c';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(10, 10, W - 20, H - 20);
+
+                ctx.setLineDash([10, 10]);
+                ctx.strokeStyle = '#1a3a5c';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(W / 2, 10);
+                ctx.lineTo(W / 2, H - 10);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#162a40';
+                ctx.beginPath();
+                ctx.arc(W / 2, H / 2, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawPaddles() {
+                const glow = '#00f5ff';
+                ctx.shadowColor = glow;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = glow;
+                ctx.fillRect(pL.x, pL.y, pL.w, pL.h);
+                ctx.fillRect(pR.x, pR.y, pR.w, pR.h);
+                ctx.shadowBlur = 0;
+            }
+
+            function drawBall(b, color) {
+                ctx.shadowColor = color || '#ff00ff';
+                ctx.shadowBlur = 16;
+                ctx.fillStyle = color || '#ff00ff';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r + 4, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            function drawBumpers() {
+                for (const bmp of bumpers) {
+                    ctx.shadowColor = '#ffaa00';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.beginPath();
+                    ctx.arc(bmp.x, bmp.y, bmp.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function drawGravWells() {
+                for (const gw of gravWells) {
+                    ctx.strokeStyle = 'rgba(100,0,255,0.4)';
+                    ctx.lineWidth = 2;
+                    for (let i = 1; i <= 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(gw.x, gw.y, gw.r * i / 3, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            function drawFog() {
+                if (fogLeft && fogRight) {
+                    const grd = ctx.createLinearGradient(fogLeft - 30, 0, fogLeft + 30, 0);
+                    grd.addColorStop(0, 'rgba(100,120,140,0)');
+                    grd.addColorStop(0.5, 'rgba(100,120,140,0.85)');
+                    grd.addColorStop(1, 'rgba(100,120,140,0)');
+                    ctx.fillStyle = grd;
+                    ctx.fillRect(fogLeft - 30, 0, 60, H);
+
+                    const grd2 = ctx.createLinearGradient(fogRight - 30, 0, fogRight + 30, 0);
+                    grd2.addColorStop(0, 'rgba(100,120,140,0)');
+                    grd2.addColorStop(0.5, 'rgba(100,120,140,0.85)');
+                    grd2.addColorStop(1, 'rgba(100,120,140,0)');
+                    ctx.fillStyle = grd2;
+                    ctx.fillRect(fogRight - 30, 0, 60, H);
+                }
+            }
+
+            function drawFireballRing() {
+                if (!fireballActive) return;
+                const intensity = Math.min(fireballSpeed * 15, 1);
+                ctx.strokeStyle = `rgba(255,${Math.floor(100 - intensity * 100)},0,${0.3 + intensity * 0.5})`;
+                ctx.lineWidth = 3 + intensity * 4;
+                ctx.beginPath();
+                ctx.arc(W / 2, H / 2, 50, 0, Math.PI * 2);
+                ctx.stroke();
+                if (intensity > 0.3) {
+                    ctx.shadowColor = '#ff4400';
+                    ctx.shadowBlur = 10 + intensity * 20;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function drawSecretWall() {
+                if (!wallVisible) return;
+                ctx.fillStyle = '#00f5ff';
+                ctx.shadowColor = '#00f5ff';
+                ctx.shadowBlur = 8;
+                ctx.fillRect(wallX - 3, (H - wallH) / 2, 6, wallH);
+                ctx.shadowBlur = 0;
+            }
+
+            function drawHUD() {
+                ctx.fillStyle = '#00f5ff';
+                ctx.font = 'bold 48px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(scoreL, W / 2 - 60, 55);
+                ctx.fillText(scoreR, W / 2 + 60, 55);
+
+                ctx.font = '12px "Press Start 2P", monospace';
+                ctx.fillStyle = '#556680';
+                ctx.fillText('P1 (W/S)', W / 2 - 60, 78);
+                ctx.fillText(twoPlayer ? 'P2 (↑/↓)' : 'CPU', W / 2 + 60, 78);
+
+                if (actionActive && actionName) {
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.font = '11px "Press Start 2P", monospace';
+                    ctx.fillText('ACTION: ' + actionName.toUpperCase(), W / 2, H - 20);
+                }
+
+                if (countdown > 0) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 64px "Press Start 2P", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(countdown, W / 2, H / 2 + 20);
+                }
+            }
+
+            function drawMenu() {
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.fillStyle = '#00f5ff';
+                ctx.font = 'bold 36px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('PING PONG', W / 2, H * 0.25);
+
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = '14px "Press Start 2P", monospace';
+                ctx.fillText('\u25B6 RETRO TABLE TENNIS \u25C0', W / 2, H * 0.33);
+
+                const hover1 = mouseY > H * 0.42 && mouseY < H * 0.42 + 44 && mouseX > W / 2 - 130 && mouseX < W / 2 + 130;
+                const hover2 = mouseY > H * 0.55 && mouseY < H * 0.55 + 44 && mouseX > W / 2 - 130 && mouseX < W / 2 + 130;
+                const hover3 = mouseY > H * 0.68 && mouseY < H * 0.68 + 44 && mouseX > W / 2 - 130 && mouseX < W / 2 + 130;
+
+                function drawBtn(y, text, hover) {
+                    ctx.fillStyle = hover ? '#00f5ff' : '#162a40';
+                    ctx.fillRect(W / 2 - 130, y, 260, 40);
+                    ctx.strokeStyle = '#00f5ff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(W / 2 - 130, y, 260, 40);
+                    ctx.fillStyle = hover ? '#0a0a1a' : '#00f5ff';
+                    ctx.font = '13px "Press Start 2P", monospace';
+                    ctx.fillText(text, W / 2, y + 26);
+                }
+
+                drawBtn(H * 0.42, 'SINGLE PLAYER', hover1);
+                drawBtn(H * 0.55, 'TWO PLAYERS', hover2);
+                drawBtn(H * 0.68, 'ACTION MODE', hover3);
+
+                ctx.fillStyle = '#556680';
+                ctx.font = '10px "Press Start 2P", monospace';
+                ctx.fillText('FIRST TO ' + WIN_SCORE + ' WINS', W / 2, H * 0.85);
+
+                ctx.fillStyle = '#334455';
+                ctx.font = '9px "Press Start 2P", monospace';
+                ctx.fillText('P1: W/S  |  P2: \u2191/\u2193', W / 2, H * 0.91);
+            }
+
+            function drawGameOver() {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = 'bold 36px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(winner + ' WINS!', W / 2, H * 0.38);
+
+                ctx.fillStyle = '#00f5ff';
+                ctx.font = '20px "Press Start 2P", monospace';
+                ctx.fillText(scoreL + ' - ' + scoreR, W / 2, H * 0.48);
+
+                const hoverReplay = mouseY > H * 0.58 && mouseY < H * 0.58 + 44 && mouseX > W / 2 - 110 && mouseX < W / 2 + 110;
+                const hoverMenu = mouseY > H * 0.70 && mouseY < H * 0.70 + 44 && mouseX > W / 2 - 110 && mouseX < W / 2 + 110;
+
+                ctx.fillStyle = hoverReplay ? '#00f5ff' : '#162a40';
+                ctx.fillRect(W / 2 - 110, H * 0.58, 220, 40);
+                ctx.strokeStyle = '#00f5ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(W / 2 - 110, H * 0.58, 220, 40);
+                ctx.fillStyle = hoverReplay ? '#0a0a1a' : '#00f5ff';
+                ctx.font = '13px "Press Start 2P", monospace';
+                ctx.fillText('PLAY AGAIN', W / 2, H * 0.58 + 26);
+
+                ctx.fillStyle = hoverMenu ? '#00f5ff' : '#162a40';
+                ctx.fillRect(W / 2 - 110, H * 0.70, 220, 40);
+                ctx.strokeStyle = '#00f5ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(W / 2 - 110, H * 0.70, 220, 40);
+                ctx.fillStyle = hoverMenu ? '#0a0a1a' : '#00f5ff';
+                ctx.font = '13px "Press Start 2P", monospace';
+                ctx.fillText('MAIN MENU', W / 2, H * 0.70 + 26);
+            }
+
+            let mouseX = 0, mouseY = 0;
+
+            function loop() {
+                if (!alive) return;
+
+                if (mode === 'menu') {
+                    drawMenu();
+                } else if (gameOver) {
+                    drawCourt();
+                    drawPaddles();
+                    drawBall(ball, '#ff00ff');
+                    drawHUD();
+                    drawGameOver();
+                } else {
+                    if (countdown > 0) {
+                        countdownTimer++;
+                        if (countdownTimer >= 60) {
+                            countdownTimer = 0;
+                            countdown--;
+                            if (countdown === 0) serving = false;
+                        }
+                    }
+
+                    handleInput();
+                    if (!twoPlayer && !serving) aiMove();
+
+                    const result = updateBall(ball);
+                    for (let i = extraBalls.length - 1; i >= 0; i--) {
+                        const er = updateBall(extraBalls[i]);
+                        if (er === 'left') { scoreL++; sfxScore(); extraBalls.splice(i, 1); }
+                        else if (er === 'right') { scoreR++; sfxScore(); extraBalls.splice(i, 1); }
+                    }
+
+                    if (result === 'left') {
+                        scoreL++; sfxScore();
+                        if (scoreL >= WIN_SCORE) { gameOver = true; winner = 'PLAYER 1'; sfxWin(); }
+                        else { actionRound++; initRound(); }
+                    } else if (result === 'right') {
+                        scoreR++; sfxScore();
+                        if (scoreR >= WIN_SCORE) {
+                            gameOver = true;
+                            winner = twoPlayer ? 'PLAYER 2' : 'CPU';
+                            sfxWin();
+                        } else { actionRound++; initRound(); }
+                    }
+
+                    drawCourt();
+                    if (fireballActive) drawFireballRing();
+                    if (wallVisible) drawSecretWall();
+                    if (bumpers.length) drawBumpers();
+                    if (gravWells.length) drawGravWells();
+                    if (fogLeft) drawFog();
+                    drawPaddles();
+                    drawBall(ball, fireballActive && fireballSpeed > 0.03 ? '#ff4400' : '#ff00ff');
+                    for (const eb of extraBalls) drawBall(eb, '#ffaa00');
+                    drawHUD();
+                }
+
+                raf = requestAnimationFrame(loop);
+            }
+
+            function getBtnBounds(y) {
+                return { x: W / 2 - 130, y: y, w: 260, h: 40 };
+            }
+            function getSmallBtnBounds(y) {
+                return { x: W / 2 - 110, y: y, w: 220, h: 40 };
+            }
+            function inRect(mx, my, r) {
+                return mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h;
+            }
+
+            function onClick(e) {
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+                if (mode === 'menu') {
+                    if (inRect(mx, my, getBtnBounds(H * 0.42))) {
+                        twoPlayer = false; actionActive = false;
+                        mode = 'play'; resetGame(); playSelectSound();
+                    } else if (inRect(mx, my, getBtnBounds(H * 0.55))) {
+                        twoPlayer = true; actionActive = false;
+                        mode = 'play'; resetGame(); playSelectSound();
+                    } else if (inRect(mx, my, getBtnBounds(H * 0.68))) {
+                        twoPlayer = false; actionActive = true;
+                        mode = 'play'; resetGame(); playSelectSound();
+                    }
+                } else if (gameOver) {
+                    if (inRect(mx, my, getSmallBtnBounds(H * 0.58))) {
+                        resetGame(); playSelectSound();
+                    } else if (inRect(mx, my, getSmallBtnBounds(H * 0.70))) {
+                        mode = 'menu'; gameOver = false; playSelectSound();
+                    }
+                }
+            }
+
+            function onMouseMove(e) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            }
+
+            function onKeyDown(e) {
+                keys[e.key] = true;
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                    e.preventDefault();
+                }
+                if (e.key === 'Enter' && mode === 'menu') {
+                    twoPlayer = false; actionActive = false;
+                    mode = 'play'; resetGame(); playSelectSound();
+                }
+                if (e.key === 'Enter' && gameOver) {
+                    resetGame(); playSelectSound();
+                }
+            }
+            function onKeyUp(e) { keys[e.key] = false; }
+
+            canvas.addEventListener('click', onClick);
+            canvas.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            container._cleanup = function() {
+                alive = false;
+                if (raf) cancelAnimationFrame(raf);
+                canvas.removeEventListener('click', onClick);
+                canvas.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('keydown', onKeyDown);
+                document.removeEventListener('keyup', onKeyUp);
+            };
+
+            mode = 'menu';
+            loop();
+        }
+
+        /* =====================================================================
+           PING PONG BACKGROUND MUSIC
+        ===================================================================== */
+        function playPingPongMusic() {
+            bgMusicRunning = true;
+            const melody = [
+                [440,0.2],[0,0.05],[523,0.2],[0,0.05],[659,0.2],[0,0.05],[880,0.3],[0,0.1],
+                [784,0.2],[0,0.05],[659,0.2],[0,0.05],[523,0.2],[0,0.05],[440,0.3],[0,0.1],
+                [330,0.2],[0,0.05],[440,0.2],[0,0.05],[523,0.2],[0,0.05],[659,0.3],[0,0.1],
+                [587,0.2],[0,0.05],[523,0.2],[0,0.05],[440,0.2],[0,0.05],[330,0.3],[0,0.2]
+            ];
+            function scheduleMelody(startT) {
+                if (!bgMusicRunning) return;
+                let t = startT;
+                for (const [freq, dur] of melody) {
+                    if (freq > 0) makeOsc(freq, 'square', 0.06, t, dur * 0.85);
+                    t += dur;
+                }
+                const totalDur = melody.reduce((s,[,d])=>s+d,0);
+                bgMusicTimeout = setTimeout(() => { if (bgMusicRunning) scheduleMelody(audioContext.currentTime); }, (totalDur - 0.1) * 1000);
+            }
+            scheduleMelody(audioContext.currentTime + 0.05);
+        }
+
+        /* =====================================================================
            SECRET: SNAKE
         ===================================================================== */
         function startSecret(container, W, H) {
@@ -4270,6 +4923,7 @@ function startPoker(container, W, H) {
             else if (gameKey === 'arkanoid') playArkanoidMusic();
             else if (gameKey === 'checkers') playCheckersMusic();
             else if (gameKey === 'poker') playPokerMusic();
+            else if (gameKey === 'pingpong') playPingPongMusic();
         }
 
         function makeOsc(freq, type, gainVal, startTime, duration) {

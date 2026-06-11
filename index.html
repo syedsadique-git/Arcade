@@ -5549,6 +5549,46 @@ function startPoker(container, W, H) {
                         {x:14,y:8,dir:-1,range:2,hp:4,alive:true}
                     ],
                     exit:{x:18,y:8}
+                },
+                {
+                    tiles:[
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,4,4,4,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,3,1],
+                    ],
+                    start:{x:1,y:8},
+                    guards:[
+                        {x:6,y:4,dir:1,range:2,hp:5,alive:true},
+                        {x:14,y:8,dir:-1,range:3,hp:4,alive:true}
+                    ],
+                    exit:{x:18,y:8}
+                },
+                {
+                    tiles:[
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,4,4,4,0,0,0,0,0,0,1],
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                        [1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,3,1],
+                    ],
+                    start:{x:1,y:8},
+                    guards:[
+                        {x:5,y:4,dir:1,range:2,hp:6,alive:true},
+                        {x:12,y:5,dir:-1,range:2,hp:6,alive:true}
+                    ],
+                    exit:{x:18,y:8}
                 }
             ];
 
@@ -5556,8 +5596,9 @@ function startPoker(container, W, H) {
             let swordOut=false, swordFrame=0, swordHit=false;
             let animTimer=0, animFrame=0;
             let keys={};
+            let prevJump=false;
             let gameOver=false, won=false, dead=false, deathTimer=0;
-            let timer=10*60, timerAcc=0;
+            let timer=180*60, timerAcc=0;
             let msg='';
             let running=true, rafId=null;
             let cameraX=0;
@@ -5589,7 +5630,7 @@ function startPoker(container, W, H) {
             function isSolid(x,y){
                 if(x<0||x>=COLS||y<0||y>=ROWS)return true;
                 let t=levels[currentLevel].tiles[y][x];
-                return t===1||t===3;
+                return t===1;
             }
             function isSpike(x,y){
                 if(x<0||x>=COLS||y<0||y>=ROWS)return false;
@@ -5644,6 +5685,8 @@ function startPoker(container, W, H) {
                 let moveLeft=keys['ArrowLeft']||keys['a'];
                 let moveRight=keys['ArrowRight']||keys['d'];
                 let jumpKey=keys['ArrowUp']||keys['w']||keys['x'];
+                let jumpPressed=jumpKey&&!prevJump;
+                prevJump=jumpKey;
                 let attackKey=keys['z']||keys[' '];
 
                 if(attackKey&&!player.attacking&&!swordOut){
@@ -5670,7 +5713,7 @@ function startPoker(container, W, H) {
                 if(!moveLeft&&!moveRight)player.vx*=0.7;
                 if(Math.abs(player.vx)<0.1)player.vx=0;
 
-                if(jumpKey&&player.onGround){
+                if(jumpPressed&&player.onGround){
                     player.vy=-9;
                     player.onGround=false;
                 }
@@ -5969,7 +6012,7 @@ function startPoker(container, W, H) {
 
             function loop(ts){if(!running)return;update();draw();rafId=requestAnimationFrame(loop);}
 
-            function resetGame(){initLevel(0);timer=10*60;timerAcc=0;}
+            function resetGame(){initLevel(0);timer=180*60;timerAcc=0;}
 
             window.addEventListener('keydown',function(e){keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key==='z')e.preventDefault();});
             window.addEventListener('keyup',function(e){keys[e.key]=false;});

@@ -3607,6 +3607,10 @@ function startPoker(container, W, H) {
             let weaponTimer=0;
             let invincible=0;
             let keys={};
+            function sfxShoot(){beep(800,0.04,'square',0.06);beep(1200,0.03,'square',0.04);}
+            function sfxEnemyDie(){beep(300,0.08,'sawtooth',0.08);setTimeout(()=>beep(200,0.1,'sawtooth',0.06),60);}
+            function sfxPlayerDie(){for(let i=0;i<10;i++)setTimeout(()=>beep(500-i*40,0.06,'sawtooth',0.15),i*60);}
+
             let bgStars=[], bgMountains=[], bgTrees=[];
             let spawnTimer=0, spawnInterval=90;
             let bossTimer=0, bossActive=false, boss=null;
@@ -3698,6 +3702,7 @@ function startPoker(container, W, H) {
                 let bx=player.x+player.w/2;
                 let by=player.y+player.h/2-4;
                 let dir=player.facing;
+                sfxShoot();
 
                 switch(weapon){
                     case'spread':
@@ -3738,6 +3743,7 @@ function startPoker(container, W, H) {
                 if(lives<=0){
                     gameOver=true;
                     msg='GAME OVER - Click to restart';
+                    sfxPlayerDie();
                 }
             }
 
@@ -3816,6 +3822,7 @@ function startPoker(container, W, H) {
                         if(b.x<e.x+e.w&&b.x+b.w>e.x&&b.y<e.y+e.h&&b.y+b.h>e.y){
                             e.hp-=b.damage;
                             if(e.hp<=0){
+                                sfxEnemyDie();
                                 explosion(e.x+e.w/2,e.y+e.h/2,12,e.color);
                                 let pts=e.type==='turret'?200:e.type==='jumper'?150:e.type==='runner'?120:100;
                                 combo++;comboTimer=60;
@@ -3839,6 +3846,7 @@ function startPoker(container, W, H) {
                         if(b.x<boss.x+boss.w&&b.x+b.w>boss.x&&b.y<boss.y+boss.h&&b.y+b.h>boss.y){
                             boss.hp-=b.damage;
                             if(boss.hp<=0){
+                                for(let i=0;i<8;i++)setTimeout(()=>beep(400+i*80,0.1,'square',0.08),i*70);
                                 explosion(boss.x+boss.w/2,boss.y+boss.h/2,40,'#ff4400');
                                 score+=2000;
                                 bossActive=false;boss=null;

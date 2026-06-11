@@ -3607,9 +3607,13 @@ function startPoker(container, W, H) {
             let weaponTimer=0;
             let invincible=0;
             let keys={};
+            const GAME_KEYS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','d','w','x','z',' '];
             function sfxShoot(){beep(800,0.04,'square',0.06);beep(1200,0.03,'square',0.04);}
             function sfxEnemyDie(){beep(300,0.08,'sawtooth',0.08);setTimeout(()=>beep(200,0.1,'sawtooth',0.06),60);}
             function sfxPlayerDie(){for(let i=0;i<10;i++)setTimeout(()=>beep(500-i*40,0.06,'sawtooth',0.15),i*60);}
+
+            let _kd=function(e){keys[e.key]=true;if(GAME_KEYS.includes(e.key))e.preventDefault();};
+            let _ku=function(e){keys[e.key]=false;if(GAME_KEYS.includes(e.key))e.preventDefault();};
 
             let bgStars=[], bgMountains=[], bgTrees=[];
             let spawnTimer=0, spawnInterval=90;
@@ -4245,11 +4249,8 @@ function startPoker(container, W, H) {
                 raf=requestAnimationFrame(loop);
             }
 
-            window.addEventListener('keydown',function(e){
-                keys[e.key]=true;
-                if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
-            });
-            window.addEventListener('keyup',function(e){keys[e.key]=false;});
+            document.addEventListener('keydown',_kd);
+            document.addEventListener('keyup',_ku);
 
             canvas.addEventListener('click',function(){
                 canvas.focus();
@@ -4262,6 +4263,8 @@ function startPoker(container, W, H) {
             container._cleanup=function(){
                 alive=false;
                 if(raf)cancelAnimationFrame(raf);
+                document.removeEventListener('keydown',_kd);
+                document.removeEventListener('keyup',_ku);
             };
 
             init();

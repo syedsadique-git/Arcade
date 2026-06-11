@@ -6081,7 +6081,8 @@ function startPoker(container, W, H) {
                 return bag.pop();
             }
             function spawn(){
-                let type=nextPiece();
+                let type=next!==null?next:nextPiece();
+                next=nextPiece();
                 let shape=PIECES[type][0];
                 current={type,rot:0,x:Math.floor((COLS-shape[0].length)/2),y:0};
                 if(collides(current)){gameOver=true;current=null;}
@@ -6126,10 +6127,10 @@ function startPoker(container, W, H) {
                 canHold=true;
                 spawn();
             }
-            function ghostY(){
-                if(!current)return 0;
-                let gy=current.y;
-                while(!collides(current,0,gy-current.y+1))gy++;
+            function getGhostY(p){
+                if(!p)return 0;
+                let gy=p.y;
+                while(!collides(p,0,gy-p.y+1))gy++;
                 return gy;
             }
 
@@ -6150,7 +6151,7 @@ function startPoker(container, W, H) {
 
             function hardDrop(){
                 if(!current||gameOver)return;
-                let gy=ghostY();
+                let gy=getGhostY(current);
                 score+=2*(gy-current.y);
                 current.y=gy;lock();
             }
@@ -6166,12 +6167,6 @@ function startPoker(container, W, H) {
                 held=t;
                 if(!current)spawn();
                 else if(collides(current)){gameOver=true;current=null;}
-            }
-
-            function getGhostY(p){
-                let gy=p.y;
-                while(!collides(p,0,gy-p.y+1))gy++;
-                return gy;
             }
 
             function update(ts){
@@ -6192,11 +6187,12 @@ function startPoker(container, W, H) {
                 }
             }
 
-            function drawBlock(x,y,col,alpha){
+            function drawBlock(x,y,col,alpha,sz){
+                sz=sz||BLOCK;
                 ctx.globalAlpha=alpha||1;
-                ctx.fillStyle=col;ctx.fillRect(x+1,y+1,BLOCK-2,BLOCK-2);
-                ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(x+2,y+2,BLOCK-6,3);
-                ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(x+2,y+BLOCK-5,BLOCK-4,3);
+                ctx.fillStyle=col;ctx.fillRect(x+1,y+1,sz-2,sz-2);
+                ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(x+2,y+2,sz-6,3);
+                ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(x+2,y+sz-5,sz-4,3);
                 ctx.globalAlpha=1;
             }
 
@@ -6225,16 +6221,16 @@ function startPoker(container, W, H) {
                 ctx.fillStyle='#888';ctx.font='bold 10px "Press Start 2P",monospace';ctx.textAlign='left';
                 ctx.fillText('NEXT',sx,OY+20);
                 if(next!==null){
-                    let nshape=PIECES[next][0];
+                    let nshape=PIECES[next][0],ps=BLOCK*0.55;
                     for(let r=0;r<nshape.length;r++)for(let c=0;c<nshape[r].length;c++){
-                        if(nshape[r][c])drawBlock(sx+c*BLOCK*0.6,OY+30+r*BLOCK*0.6,COLORS[next]);
+                        if(nshape[r][c])drawBlock(sx+c*ps,OY+30+r*ps,COLORS[next],1,ps);
                     }
                 }
                 ctx.fillText('HOLD',sx,OY+130);
                 if(held!==null){
-                    let hshape=PIECES[held][0];
+                    let hshape=PIECES[held][0],ps=BLOCK*0.55;
                     for(let r=0;r<hshape.length;r++)for(let c=0;c<hshape[r].length;c++){
-                        if(hshape[r][c])drawBlock(sx+c*BLOCK*0.6,OY+140+r*BLOCK*0.6,COLORS[held]);
+                        if(hshape[r][c])drawBlock(sx+c*ps,OY+140+r*ps,COLORS[held],1,ps);
                     }
                 }
                 ctx.fillStyle='#aaa';ctx.font='9px "Press Start 2P",monospace';
@@ -6274,8 +6270,8 @@ function startPoker(container, W, H) {
             function reset(){
                 board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
                 bag=[];score=0;level=1;lines=0;dropInt=800;dropAcc=0;
-                canHold=true;held=null;gameOver=false;paused=false;
-                shuffleBag();next=nextPiece();spawn();
+                canHold=true;held=null;next=null;gameOver=false;paused=false;
+                shuffleBag();spawn();
             }
 
             let _kd=function(e){

@@ -1,0 +1,54 @@
+====================================
+TO SEE THE NEW TEXAS HOLD'EM POKER
+====================================
+
+Your browser has cached the old version!
+
+SOLUTION 1: Open the NEW file
+------------------------------
+Open this file instead:
+    index_NEW.html
+
+This file has a different name so your browser 
+will load it fresh without using cache.
+
+
+SOLUTION 2: Hard Refresh (in current browser)
+----------------------------------------------
+1. CLOSE the browser tab with index.html
+2. Press Ctrl+Shift+Delete (Windows) or Cmd+Shift+Delete (Mac)
+3. Select "Cached images and files"
+4. Click "Clear data"
+5. Open index.html again
+
+
+SOLUTION 3: Use Different Browser
+----------------------------------
+If you opened in Chrome, try Firefox or Edge
+Fresh browser = no cached version
+
+
+SOLUTION 4: Incognito/Private Mode
+-----------------------------------
+1. Press Ctrl+Shift+N (Chrome) or Ctrl+Shift+P (Firefox)
+2. Open index.html in the incognito window
+3. No cache = fresh version
+
+
+WHAT YOU SHOULD SEE:
+====================
+✓ Title: "♠ TEXAS HOLD'EM ♠" (not "VIDEO POKER")
+✓ 2 cards per player (not 5)
+✓ "Your Chips / Pot / Dealer Chips" info bar at top
+✓ "Phase: PREFLOP" indicator
+✓ Buttons: FOLD / CALL / RAISE (not BET+10/BET-10/DEAL)
+✓ Community cards area (empty at start)
+✓ +/- buttons to adjust raise amount
+
+
+THE CODE IS ALREADY UPDATED!
+=============================
+The index.html file HAS the new Texas Hold'em game.
+The problem is just your browser showing an old cached copy.
+
+Try index_NEW.html first - it's the easiest solution!

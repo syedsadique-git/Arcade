@@ -6054,6 +6054,33 @@ function startPoker(container, W, H) {
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
+            let actx=null;
+            function initAudio(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();}
+            function sfx(freq,dur,type,vol){
+                initAudio();
+                let o=actx.createOscillator(),g=actx.createGain();
+                o.type=type||'square';o.frequency.value=freq;
+                g.gain.setValueAtTime(vol||0.08,actx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+dur);
+                o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur);
+            }
+            function sfxNoise(dur,vol){
+                initAudio();
+                let b=actx.createBuffer(1,Math.max(1,actx.sampleRate*dur),actx.sampleRate);
+                let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;
+                let s=actx.createBufferSource();s.buffer=b;
+                let g=actx.createGain();g.gain.setValueAtTime(vol||0.04,actx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+dur);
+                let f=actx.createBiquadFilter();f.type='lowpass';f.frequency.value=800;
+                s.connect(f);f.connect(g);g.connect(actx.destination);s.start();s.stop(actx.currentTime+dur);
+            }
+            function sfxLock(){sfxNoise(0.06,0.08);sfx(200,0.06,'square',0.06);}
+            function sfxClear(n){if(n>=4){for(let i=0;i<5;i++)setTimeout(()=>sfx(600+i*120,0.12,'square',0.08),i*60);}else{sfx(440,0.08,'square',0.07);setTimeout(()=>sfx(660,0.08,'square',0.06),60);}}
+            function sfxDrop(){sfx(110,0.15,'triangle',0.05);}
+            function sfxRotate(){sfx(880,0.04,'square',0.04);}
+            function sfxMove(){sfx(660,0.02,'square',0.03);}
+            function sfxGameOver(){for(let i=0;i<8;i++)setTimeout(()=>sfx(400-i*40,0.1,'sawtooth',0.07),i*80);}
+
             const PIECES=[
                 [[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],[[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]],
                 [[[1,1],[1,1]]],
@@ -6085,7 +6112,7 @@ function startPoker(container, W, H) {
                 next=nextPiece();
                 let shape=PIECES[type][0];
                 current={type,rot:0,x:Math.floor((COLS-shape[0].length)/2),y:0};
-                if(collides(current)){gameOver=true;current=null;}
+                if(collides(current)){gameOver=true;current=null;sfxGameOver();}
             }
             function collides(p,offX=0,offY=0,rot=p.rot){
                 let shape=PIECES[p.type][rot];
@@ -6111,6 +6138,7 @@ function startPoker(container, W, H) {
                         }
                     }
                 }
+                sfxLock();
                 let cleared=0;
                 for(let r=ROWS-1;r>=0;r--){
                     if(board[r].every(v=>v!==0)){
@@ -6119,6 +6147,7 @@ function startPoker(container, W, H) {
                     }
                 }
                 if(cleared>0){
+                    sfxClear(cleared);
                     let pts=[0,40,100,300,1200];score+=pts[cleared]*level;
                     lines+=cleared;
                     let nl=Math.floor(lines/10)+1;
@@ -6144,7 +6173,7 @@ function startPoker(container, W, H) {
                 for(let k of kicks){
                     if(!collides(current,k[0],k[1],nrot)){
                         current.x+=k[0];current.y+=k[1];
-                        current.rot=nrot;return;
+                        current.rot=nrot;sfxRotate();return;
                     }
                 }
             }
@@ -6153,6 +6182,7 @@ function startPoker(container, W, H) {
                 if(!current||gameOver)return;
                 let gy=getGhostY(current);
                 score+=2*(gy-current.y);
+                sfxDrop();
                 current.y=gy;lock();
             }
 
@@ -6172,8 +6202,8 @@ function startPoker(container, W, H) {
             function update(ts){
                 if(!alive||gameOver||paused)return;
                 let dt=Math.min(ts-lastTs,100);lastTs=ts;
-                if(keys['ArrowLeft']){keys['ArrowLeft']=false;if(current&&!collides(current,-1,0))current.x--;}
-                if(keys['ArrowRight']){keys['ArrowRight']=false;if(current&&!collides(current,1,0))current.x++;}
+                if(keys['ArrowLeft']){keys['ArrowLeft']=false;if(current&&!collides(current,-1,0)){current.x--;sfxMove();}}
+                if(keys['ArrowRight']){keys['ArrowRight']=false;if(current&&!collides(current,1,0)){current.x++;sfxMove();}}
                 if(keys['ArrowDown']){keys['ArrowDown']=false;dropAcc+=dropInt*0.5;}
                 if(keys['ArrowUp']){keys['ArrowUp']=false;rotate(1);}
                 if(keys['z']){keys['z']=false;rotate(-1);}

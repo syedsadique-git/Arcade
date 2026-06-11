@@ -4244,13 +4244,13 @@ function startPoker(container, W, H) {
                 if(lastTs===0)lastTs=ts;
                 var dt=Math.min(ts-lastTs,50);
                 lastTs=ts;
-                update(dt);
-                draw();
+                try{update(dt);}catch(e){}
+                try{draw();}catch(e){}
                 raf=requestAnimationFrame(loop);
             }
 
-            document.addEventListener('keydown',_kd);
-            document.addEventListener('keyup',_ku);
+            window.addEventListener('keydown',_kd);
+            window.addEventListener('keyup',_ku);
 
             canvas.addEventListener('click',function(){
                 canvas.focus();
@@ -4263,8 +4263,8 @@ function startPoker(container, W, H) {
             container._cleanup=function(){
                 alive=false;
                 if(raf)cancelAnimationFrame(raf);
-                document.removeEventListener('keydown',_kd);
-                document.removeEventListener('keyup',_ku);
+                window.removeEventListener('keydown',_kd);
+                window.removeEventListener('keyup',_ku);
             };
 
             init();

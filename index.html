@@ -3074,11 +3074,18 @@ function startPoker(container, W, H) {
             function findValidMoves(p){
                 let hand=hands[p];if(hand.length===0)return[];
                 if(trick.length===0){
-                    if(firstTrick){let tc=hand.find(c=>c.suit===0&&c.rank==='2');return tc?[tc]:hand;}
-                    if(!heartsBroken&&hand.every(c=>c.suit===3))return hand;
-                    return hand.filter(c=>!(firstTrick&&isPenalty(c)));
+                    if(firstTrick){
+                        let tc=hand.find(c=>c.suit===0&&c.rank==='2');
+                        return tc?[tc]:hand.filter(c=>!isPenalty(c));
+                    }
+                    if(!heartsBroken){
+                        if(hand.every(c=>c.suit===3))return hand;
+                        return hand.filter(c=>c.suit!==3);
+                    }
+                    return hand;
                 }
                 if(hasSuit(p,trickSuit))return hand.filter(c=>c.suit===trickSuit);
+                if(firstTrick)return hand.filter(c=>!isPenalty(c));
                 return hand;
             }
             function playCard(p,c){let idx=hands[p].indexOf(c);if(idx>=0)hands[p].splice(idx,1);trick.push({card:c,player:p});}
@@ -3229,7 +3236,7 @@ function startPoker(container, W, H) {
                             animating=false;draw();
                         }
                     }};
-                    animating=true;
+                    animating=true;startAnimLoop();
                 } else {
                     currentPlayer=(currentPlayer+1)%4;
                     if(currentPlayer!==0)aiTurn();

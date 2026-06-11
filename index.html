@@ -917,6 +917,18 @@
             osc.stop(time + 0.1);
         }
 
+        function beep(freq,dur,type='square',vol=0.15){
+            if(!soundEnabled)return;
+            try{
+                const o=audioContext.createOscillator(),g=audioContext.createGain();
+                o.type=type||'square'; o.frequency.value=freq;
+                o.connect(g); g.connect(audioContext.destination);
+                const t=audioContext.currentTime;
+                g.gain.setValueAtTime(vol||0.12,t); g.gain.setValueAtTime(0,t+dur);
+                o.start(t); o.stop(t+dur+0.01);
+            }catch(e){}
+        }
+
         function sfxEatApple() {
             if (!soundEnabled) return;
             const time = audioContext.currentTime;
@@ -6398,20 +6410,20 @@ function startPoker(container, W, H) {
             const ctx=canvas.getContext('2d');
 
             const BG_COLOR='#0d1120';
-            const PLATFORM_TOP='#6a5a4a';
-            const PLATFORM_FILL='#4a3a2a';
-            const PLATFORM_BOTTOM='#3a2a1a';
-            const PLATFORM_RIVET='#a99888';
-            const LADDER_RUNG='#9a8a6a';
-            const LADDER_RAIL='#7a6a4a';
-            const OIL_DRUM_BODY='#777';
-            const OIL_DRUM_STRIPE='#999';
-            const OIL_FIRE_RED='#ff4444';
-            const OIL_FIRE_YELLOW='#ffcc00';
-            const PRINCESS_SKIN='#ffcc88';
-            const PRINCESS_DRESS='#ff66aa';
-            const PRINCESS_CROWN='#ffcc00';
-            const PRINCESS_RIBBON='#ff0000';
+            const PLATFORM_TOP='#c8b898';
+            const PLATFORM_FILL='#9a8a7a';
+            const PLATFORM_BOTTOM='#7a6a5a';
+            const PLATFORM_RIVET='#e0d4c4';
+            const LADDER_RUNG='#b8a888';
+            const LADDER_RAIL='#9a8a6a';
+            const OIL_DRUM_BODY='#888';
+            const OIL_DRUM_STRIPE='#aaa';
+            const OIL_FIRE_RED='#ff6644';
+            const OIL_FIRE_YELLOW='#ffdd44';
+            const PRINCESS_SKIN='#ffddb8';
+            const PRINCESS_DRESS='#ff88bb';
+            const PRINCESS_CROWN='#ffdd44';
+            const PRINCESS_RIBBON='#ff3344';
 
             const LEVELS=[[
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],

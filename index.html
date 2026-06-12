@@ -893,7 +893,7 @@
             tetris:  { name: 'TETRIS',                 controls: '► Arrow Keys to Move ► Up to Rotate ► Space to Hard Drop ► C to Hold ► Clear lines to score' },
             dk:      { name: 'DONKEY KONG',             controls: '► Arrow Keys to Move ► Up to Climb Ladders ► Space to Jump ► Dodge Barrels ► Save the Princess' },
             raiden:  { name: 'RAIDEN',                  controls: '► Arrow Keys to Move ► Z or Space to Fire ► Collect Power-ups ► Destroy Enemy Waves ► Survive!' },
-            magictiles: { name: 'MAGIC TILES',          controls: '► Press 1 2 3 4 to tap tiles in each column ► Hit the black tiles in rhythm ► Miss and it\'s game over!' }
+            magictiles: { name: 'MAGIC TILES',          controls: '► Press W A S D to tap tiles in each column ► Hit the black tiles in rhythm ► Miss and it\'s game over!' }
         };
 
         let currentGame = null;
@@ -5519,7 +5519,7 @@ function startPoker(container, W, H) {
                 ctx.font = '14px "Press Start 2P",monospace';
                 ctx.textAlign = 'center';
                 for (let i = 0; i < COLS; i++) {
-                    ctx.fillText((i + 1), OX + i * COL_W + COL_W / 2, H - 15);
+                    ctx.fillText(['W','A','S','D'][i], OX + i * COL_W + COL_W / 2, H - 15);
                 }
 
                 if (gameOver) {
@@ -5548,16 +5548,11 @@ function startPoker(container, W, H) {
                 gameOver = false;
             }
 
-            function handleKey(e) {
-                const k = e.key;
-                if (k >= '1' && k <= '4') {
-                    e.preventDefault();
-                    if (gameOver) { restart(); return; }
-                    handleTap(parseInt(k) - 1);
-                }
-            }
-
-            const _kd = (e) => handleKey(e);
+            const keysMap = { 'w': 0, 'a': 1, 's': 2, 'd': 3 };
+            const _kd = (e) => {
+                const k = e.key.toLowerCase();
+                if (k in keysMap) { e.preventDefault(); if (gameOver) { restart(); return; } handleTap(keysMap[k]); }
+            };
             document.addEventListener('keydown', _kd);
 
             canvas.addEventListener('click', (e) => {

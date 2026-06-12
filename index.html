@@ -24,6 +24,61 @@
             --glow-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
             --glow-shadow-mag: 0 0 10px var(--neon-magenta), 0 0 20px var(--neon-magenta), 0 0 30px var(--neon-magenta);
             --glow-shadow-yellow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow), 0 0 30px var(--neon-yellow);
+            --bg-header: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
+            --bg-sidebar: linear-gradient(135deg, rgba(10, 10, 26, 0.9), rgba(26, 10, 46, 0.9));
+        }
+        /* ===== THEMES ===== */
+        html.theme-bw {
+            --bg-dark: #111;
+            --neon-cyan: #ccc;
+            --neon-magenta: #999;
+            --neon-yellow: #ddd;
+            --neon-orange: #aaa;
+            --text-primary: #ccc;
+            --text-secondary: #ddd;
+            --scanline-color: rgba(255,255,255,0.05);
+            --bg-header: linear-gradient(135deg, #1a1a1a 0%, #222 100%);
+            --bg-sidebar: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.95));
+        }
+        html.theme-bw .game-item-icon,
+        html.theme-bw .coin-icon,
+        html.theme-bw .live-dot { filter: grayscale(1); }
+        html.theme-bw #game-frame canvas { filter: grayscale(1); }
+
+        html.theme-retro {
+            --bg-dark: #0a0f00;
+            --neon-cyan: #33ff33;
+            --neon-magenta: #22cc22;
+            --neon-yellow: #55ff55;
+            --neon-orange: #44dd44;
+            --text-primary: #33ff33;
+            --text-secondary: #55ff55;
+            --scanline-color: rgba(0,255,0,0.08);
+            --bg-header: linear-gradient(135deg, #0a120a 0%, #0d1a0d 100%);
+            --bg-sidebar: linear-gradient(135deg, rgba(10,20,10,0.95), rgba(15,25,15,0.95));
+            --glow-shadow: 0 0 10px #33ff33, 0 0 20px #33ff33;
+            --glow-shadow-mag: 0 0 10px #22cc22, 0 0 20px #22cc22;
+            --glow-shadow-yellow: 0 0 10px #55ff55, 0 0 20px #55ff55;
+        }
+        html.theme-retro body::before {
+            background: repeating-linear-gradient(0deg, rgba(0,255,0,0.06), rgba(0,255,0,0.06) 1px, transparent 1px, transparent 3px) !important;
+        }
+        html.theme-retro #game-frame canvas { filter: sepia(0.3) hue-rotate(60deg) saturate(2); }
+
+        html.theme-cyberpunk {
+            --bg-dark: #0a0014;
+            --neon-cyan: #ff00aa;
+            --neon-magenta: #aa00ff;
+            --neon-yellow: #00ffff;
+            --neon-orange: #ff4400;
+            --text-primary: #ff00aa;
+            --text-secondary: #00ffff;
+            --scanline-color: rgba(255,0,170,0.08);
+            --bg-header: linear-gradient(135deg, #1a0028 0%, #0a0020 100%);
+            --bg-sidebar: linear-gradient(135deg, rgba(20,0,40,0.95), rgba(30,0,50,0.95));
+            --glow-shadow: 0 0 10px #ff00aa, 0 0 20px #ff00aa, 0 0 30px #ff00aa;
+            --glow-shadow-mag: 0 0 10px #aa00ff, 0 0 20px #aa00ff, 0 0 30px #aa00ff;
+            --glow-shadow-yellow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
         }
 
         /* ===== RESET ===== */
@@ -106,7 +161,7 @@
 
         /* ===== HEADER ===== */
         .header {
-            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
+            background: var(--bg-header);
             border-bottom: 3px solid var(--neon-cyan);
             padding: 15px 20px;
             display: flex;
@@ -223,6 +278,61 @@
             opacity: 0.6;
         }
 
+        /* ===== THEME SELECTOR ===== */
+        .theme-selector {
+            position: relative;
+            display: inline-block;
+        }
+        .theme-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+            padding: 8px 10px;
+            background: linear-gradient(135deg, var(--neon-magenta), #6600aa);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: none;
+            box-shadow: 0 0 12px var(--neon-magenta);
+            transition: all 0.3s ease;
+        }
+        .theme-btn:hover {
+            box-shadow: 0 0 25px var(--neon-magenta);
+            transform: scale(1.05);
+        }
+        .theme-dropdown {
+            display: none;
+            position: absolute;
+            top: 110%;
+            right: 0;
+            min-width: 160px;
+            background: rgba(0,0,0,0.95);
+            border: 2px solid var(--neon-magenta);
+            border-radius: 6px;
+            padding: 6px;
+            z-index: 100;
+            box-shadow: 0 0 20px var(--neon-magenta);
+        }
+        .theme-dropdown.open { display: block; }
+        .theme-option {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            padding: 8px 12px;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .theme-option:hover {
+            background: rgba(0,245,255,0.15);
+            color: var(--neon-yellow);
+        }
+        .theme-option.active {
+            background: rgba(0,245,255,0.2);
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
         /* ===== CONTAINER ===== */
         .container {
             display: flex;
@@ -234,7 +344,7 @@
         /* ===== SIDEBAR ===== */
         .sidebar {
             width: 280px;
-            background: linear-gradient(135deg, rgba(10, 10, 26, 0.9), rgba(26, 10, 46, 0.9));
+            background: var(--bg-sidebar);
             border: 3px solid var(--neon-magenta);
             border-radius: 10px;
             padding: 20px;
@@ -726,6 +836,15 @@
                 <span id="coin-count">99</span>
             </div>
             <button class="sound-toggle" id="sound-toggle">🔊 ON</button>
+            <div class="theme-selector">
+                <button class="theme-btn" id="theme-btn">🎨 THEME</button>
+                <div class="theme-dropdown" id="theme-dropdown">
+                    <div class="theme-option" data-theme="default">🌀 Default</div>
+                    <div class="theme-option" data-theme="bw">⚫ B&W</div>
+                    <div class="theme-option" data-theme="retro">🟢 Retro</div>
+                    <div class="theme-option" data-theme="cyberpunk">💜 Cyberpunk</div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -5660,6 +5779,36 @@ function startPoker(container, W, H) {
                 if (startCurrentBgMusic) startCurrentBgMusic();
             }
         });
+
+        // ===== THEME SWITCHER =====
+        const themeBtn = document.getElementById('theme-btn');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        let currentTheme = localStorage.getItem('arcade-theme') || 'default';
+
+        function setTheme(theme) {
+            document.documentElement.className = theme === 'default' ? '' : 'theme-' + theme;
+            currentTheme = theme;
+            localStorage.setItem('arcade-theme', theme);
+            document.querySelectorAll('.theme-option').forEach(o => {
+                o.classList.toggle('active', o.dataset.theme === theme);
+            });
+        }
+
+        themeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('open');
+        });
+        document.addEventListener('click', () => themeDropdown.classList.remove('open'));
+
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setTheme(opt.dataset.theme);
+                themeDropdown.classList.remove('open');
+            });
+        });
+
+        setTheme(currentTheme);
 
         // ===== GAME MENU EVENT LISTENERS =====
         document.querySelectorAll('.game-item').forEach(item => {

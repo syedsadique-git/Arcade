@@ -3809,7 +3809,7 @@ function startPoker(container, W, H) {
                     case'snake':
                         ey=groundY-18;ew=24;eh=14;hp=2;speed=1.5;color='#22cc44';behavior='snake';break;
                 }
-                enemies.push({x:ex,y:ey,w:ew,h:eh,hp,type,speed,color,behavior,shootTimer:60+Math.random()*60,frame:0,jumpTimer:0,groundY:ey});
+                enemies.push({x:ex,y:ey,w:ew,h:eh,hp,type,speed,color,behavior,shootTimer:20+Math.random()*30,frame:0,jumpTimer:0,groundY:ey});
             }
 
             function spawnBoss(){
@@ -4051,7 +4051,7 @@ function startPoker(container, W, H) {
                     if(e.behavior==='shoot'){
                         e.shootTimer--;
                         if(e.shootTimer<=0&&edx>0&&edx<W){
-                            enemyShoot(e);e.shootTimer=60+Math.random()*40;
+                            enemyShoot(e);e.shootTimer=20+Math.random()*20;
                         }
                     }
                     if(e.behavior==='snake'){
@@ -7571,7 +7571,7 @@ function startPoker(container, W, H) {
                         boss.x+=Math.sin(boss.frame*0.03)*1.5;
                         boss.shootTimer--;
                         if(boss.shootTimer<=0){
-                            boss.shootTimer=30;
+                        boss.shootTimer=15;
                             if(Math.random()<0.5){
                                 for(let a=-0.3;a<=0.3;a+=0.15){
                                     enemyBullets.push({x:boss.x+40,y:boss.y+64,vx:Math.sin(a)*3,vy:3,w:5,h:5,damage:1,color:'#ff44ff',life:120});

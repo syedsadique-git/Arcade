@@ -3682,12 +3682,22 @@ function startPoker(container, W, H) {
                 platforms=[];
                 let px=400;
                 while(px<levelLength-200){
-                    if(Math.random()<0.3){
-                        let pw=80+Math.random()*120;
-                        let py=groundY-80-Math.random()*120;
-                        platforms.push({x:px,y:py,w:pw,h:12});
+                    if(Math.random()<0.4){
+                        let pw=160+Math.random()*200;
+                        let py=groundY-60-Math.random()*60;
+                        platforms.push({x:px,y:py,w:pw,h:14});
                     }
-                    px+=150+Math.random()*200;
+                    px+=200+Math.random()*250;
+                }
+                // Ground obstacles (barriers, crates, etc.)
+                let ox=600;
+                while(ox<levelLength-100){
+                    if(Math.random()<0.35){
+                        let ow=20+Math.random()*40;
+                        let oh=20+Math.random()*25;
+                        platforms.push({x:ox,y:groundY-oh,w:ow,h:oh,isGroundObs:true});
+                    }
+                    ox+=250+Math.random()*300;
                 }
             }
 
@@ -3832,6 +3842,17 @@ function startPoker(container, W, H) {
                     }
                 }
 
+                // Ground obstacle horizontal collision
+                for(let p of platforms){
+                    if(p.isGroundObs&&player.y+player.h>p.y+8){
+                        if(player.vx>0&&player.x+player.w>p.x&&player.x<p.x+p.w){
+                            player.x=p.x-player.w;
+                        } else if(player.vx<0&&player.x<p.x+p.w&&player.x+player.w>p.x){
+                            player.x=p.x+p.w;
+                        }
+                    }
+                }
+
                 if(shootKey){shooting=true;shoot();}
                 else{shooting=false;}
                 if(shootTimer>0)shootTimer--;
@@ -3926,7 +3947,14 @@ function startPoker(container, W, H) {
                     if(edx<-200){enemies.splice(i,1);continue;}
 
                     if(e.behavior==='walk'||e.behavior==='run'){
+                        let prevX=e.x;
                         e.x-=e.speed;
+                        // Collide with ground obstacles
+                        for(let p of platforms){
+                            if(p.isGroundObs&&e.x+e.w>p.x&&e.x<p.x+p.w&&e.y+e.h>p.y+8){
+                                e.x=prevX;break;
+                            }
+                        }
                         e.frame=(e.frame+0.1)%2;
                     }
                     if(e.behavior==='jumper'){
@@ -4051,13 +4079,22 @@ function startPoker(container, W, H) {
                     ctx.fillStyle='#1a3a0a';ctx.fillRect(0,groundY,W,4);
                 }
 
-                // Platforms
+                // Platforms & ground obstacles
                 for(let p of platforms){
                     let px=p.x-cx;
                     if(px>-p.w-10&&px<W+10){
-                        if(imgBlock.complete&&imgBlock.naturalWidth>0){
-                            ctx.fillStyle=ctx.createPattern(imgBlock,'repeat');
-                            ctx.fillRect(px,p.y,p.w,p.h);
+                        if(p.isGroundObs){
+                            let grd=ctx.createLinearGradient(px,p.y,px,p.y+p.h);
+                            grd.addColorStop(0,'#6a4a2a');grd.addColorStop(0.5,'#4a2a1a');grd.addColorStop(1,'#3a1a0a');
+                            ctx.fillStyle=grd;ctx.fillRect(px,p.y,p.w,p.h);
+                            ctx.strokeStyle='#8a6a3a';ctx.lineWidth=1;
+                            ctx.strokeRect(px+1,p.y+1,p.w-2,p.h-2);
+                            ctx.fillStyle='#8a6a3a';
+                            ctx.fillRect(px+2,p.y+2,p.w-4,2);
+                            ctx.fillRect(px+2,p.y+p.h-4,p.w-4,2);
+                        } else if(imgBlock.complete&&imgBlock.naturalWidth>0){
+                            let pat=ctx.createPattern(imgBlock,'repeat');
+                            ctx.fillStyle=pat;ctx.fillRect(px,p.y,p.w,p.h);
                         } else {
                             ctx.fillStyle='#5a3a1a';ctx.fillRect(px,p.y,p.w,p.h);
                             ctx.fillStyle='#7a5a2a';ctx.fillRect(px,p.y,p.w,3);
@@ -4065,74 +4102,123 @@ function startPoker(container, W, H) {
                     }
                 }
 
-                // Enemies
+                // Enemies (Contra soldier style)
                 for(let e of enemies){
                     let ex=e.x-cx;
                     if(ex<-50||ex>W+50)continue;
-                    let useImg=imgVillain.complete&&imgVillain.naturalWidth>0;
                     if(e.behavior==='snake'){
+                        // Snake enemy
                         for(let s=3;s>=0;s--){
                             let sx=ex+e.w-s*6;
                             let sy=e.y+Math.sin((e.frame*2)+s*0.8)*5;
                             ctx.fillStyle=s===0?'#22aa44':s===1?'#1a9933':'#118822';
                             ctx.fillRect(sx,sy,e.w*0.6,e.h*0.8);
                         }
-                        if(useImg){
-                            ctx.drawImage(imgVillain,ex+e.w*0.5-8,e.y-4,e.w+10,e.h+8);
-                        } else {
-                            ctx.fillStyle='#0d6618';ctx.fillRect(ex+e.w*0.5,e.y-2,e.w*0.5,e.h+4);
-                            ctx.fillStyle='#ff0';ctx.fillRect(ex+e.w-2,e.y+1,3,3);
-                            ctx.fillRect(ex+e.w-2,e.y+e.h-5,3,3);
-                        }
+                        ctx.fillStyle='#0d6618';ctx.fillRect(ex+e.w*0.5,e.y-2,e.w*0.5,e.h+4);
+                        ctx.fillStyle='#ff0';ctx.fillRect(ex+e.w-2,e.y+1,3,3);
+                        ctx.fillRect(ex+e.w-2,e.y+e.h-5,3,3);
                         ctx.fillStyle='#ff3333';
                         let tongue=Math.sin(e.frame*4)*3;
                         ctx.fillRect(ex+e.w+1,e.y+e.h/2-1,4+tongue,2);
                     } else if(e.behavior==='turret'){
-                        if(useImg){
-                            ctx.drawImage(imgVillain,ex-4,e.y-4,e.w+10,e.h+10);
-                        } else {
-                            ctx.fillStyle=e.color;ctx.fillRect(ex,e.y,e.w,e.h);
-                        }
-                        ctx.fillStyle='#666';ctx.fillRect(ex+e.w/2-3,e.y-8,6,8);
+                        // Turret - armored gun emplacement
+                        ctx.fillStyle='#666';ctx.fillRect(ex,e.y,e.w,e.h);
+                        ctx.fillStyle='#555';ctx.fillRect(ex+2,e.y+2,e.w-4,e.h-4);
+                        ctx.fillStyle='#888';ctx.fillRect(ex-2,e.y-8,4,12);
+                        ctx.fillStyle='#888';ctx.fillRect(ex+e.w-2,e.y-8,4,12);
+                        ctx.fillStyle='#444';ctx.fillRect(ex+e.w/2-4,e.y-12,8,8);
+                        ctx.fillStyle='#ff4444';
+                        ctx.fillRect(ex+e.w/2-2,e.y-10,4,4);
+                        // Barrel
+                        ctx.fillStyle='#555';ctx.fillRect(ex+e.w/2-2,e.y-18,4,8);
                     } else {
-                        if(useImg){
-                            ctx.drawImage(imgVillain,ex-2,e.y-2,e.w+6,e.h+6);
-                        } else {
-                            ctx.fillStyle=e.color;ctx.fillRect(ex+2,e.y+4,e.w-4,e.h-4);
-                            ctx.fillStyle='#ddd';ctx.beginPath();
-                            ctx.arc(ex+e.w/2,e.y+6,6,0,Math.PI*2);ctx.fill();
-                            ctx.fillStyle='#f00';
-                            ctx.fillRect(ex+e.w/2+(e.frame>0.5?1:-3),e.y+4,2,2);
-                        }
-                        ctx.fillStyle=e.color;
+                        // Soldier-type enemy (Contra style)
+                        let bodyColor=e.type==='runner'?'#cc6600':e.type==='jumper'?'#aa44aa':'#cc3333';
+                        // Legs
                         let legOff=Math.sin(e.frame*Math.PI)*4;
-                        ctx.fillRect(ex+3,e.y+e.h-6,4,6+legOff);
-                        ctx.fillRect(ex+e.w-7,e.y+e.h-6,4,6-legOff);
+                        ctx.fillStyle='#2a2a2a';
+                        ctx.fillRect(ex+3,e.y+e.h-7,4,7+legOff);
+                        ctx.fillRect(ex+e.w-7,e.y+e.h-7,4,7-legOff);
+                        ctx.fillStyle='#4a3a2a';
+                        ctx.fillRect(ex+2,e.y+e.h-2,5,3+legOff);
+                        ctx.fillRect(ex+e.w-7,e.y+e.h-2,5,3-legOff);
+                        // Body
+                        ctx.fillStyle=bodyColor;
+                        ctx.fillRect(ex+2,e.y+8,e.w-4,e.h-16);
+                        ctx.fillStyle='#2a2a2a';
+                        ctx.fillRect(ex+3,e.y+9,e.w-6,3);
+                        // Arms
+                        ctx.fillStyle='#e8c49a';
+                        ctx.fillRect(ex-2,e.y+10,4,5);
+                        ctx.fillRect(ex+e.w-2,e.y+10,4,5);
+                        // Gun
+                        ctx.fillStyle='#444';
+                        ctx.fillRect(ex-6,e.y+11,8,3);
+                        // Head with helmet
+                        ctx.fillStyle='#e8c49a';
+                        ctx.fillRect(ex+e.w/2-5,e.y+1,10,9);
+                        ctx.fillStyle='#555';
+                        ctx.fillRect(ex+e.w/2-6,e.y,12,5);
+                        ctx.fillStyle='#444';
+                        ctx.fillRect(ex+e.w/2-6,e.y+1,12,2);
+                        // Eyes
+                        ctx.fillStyle='#fff';
+                        ctx.fillRect(ex+e.w/2-3,e.y+3,2,2);
+                        ctx.fillRect(ex+e.w/2+1,e.y+3,2,2);
+                        ctx.fillStyle='#f00';
+                        ctx.fillRect(ex+e.w/2-2,e.y+4,1,1);
+                        ctx.fillRect(ex+e.w/2+2,e.y+4,1,1);
                     }
                 }
 
-                // Boss
+                // Boss (Contra mecha style)
                 if(boss&&bossActive){
                     let bx=boss.x-cx;
                     let hpPct=boss.hp/boss.maxHp;
-                    let useImg=imgVillain.complete&&imgVillain.naturalWidth>0;
-                    if(useImg){
-                        ctx.drawImage(imgVillain,bx-10,boss.y-10,boss.w+20,boss.h+20);
-                    } else {
-                        ctx.fillStyle=`rgb(${Math.floor(200+55*(1-hpPct))},${Math.floor(50*(1-hpPct))},0)`;
-                        ctx.fillRect(bx,boss.y,boss.w,boss.h);
-                    }
-                    ctx.fillStyle='#ff0000';
-                    ctx.fillRect(bx+10,boss.y+10,boss.w-20,20);
-                    // Eye
-                    ctx.fillStyle=hpPct<0.3?'#ff0000':'#ffff00';
+                    let bw=boss.w,bh=boss.h;
+                    // Main body - armored chassis
+                    ctx.fillStyle='#8a1a1a';
+                    ctx.fillRect(bx,boss.y+12,bw,bh-12);
+                    ctx.fillStyle='#6a0a0a';
+                    ctx.fillRect(bx+4,boss.y+16,bw-8,bh-20);
+                    // Armor plates
+                    ctx.fillStyle='#aa2a2a';
+                    ctx.fillRect(bx,boss.y+12,bw,4);
+                    ctx.fillRect(bx,boss.y+bh-8,bw,4);
+                    ctx.fillRect(bx+8,boss.y+20,6,bh-30);
+                    ctx.fillRect(bx+bw-14,boss.y+20,6,bh-30);
+                    // Top dome
+                    ctx.fillStyle='#9a2a1a';
                     ctx.beginPath();
-                    ctx.arc(bx+boss.w/2,boss.y+boss.h/2,15+Math.sin(Date.now()*0.01)*3,0,Math.PI*2);
+                    ctx.arc(bx+bw/2,boss.y+16,bw/2-2,Math.PI,0);
+                    ctx.fill();
+                    // Eye / core (glows and changes with HP)
+                    let eyeR=hpPct<0.3?18:14;
+                    ctx.fillStyle=hpPct<0.3?'#ff0000':'#ff6600';
+                    ctx.beginPath();
+                    ctx.arc(bx+bw/2,boss.y+24,eyeR+Math.sin(Date.now()*0.01)*2,0,Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle='#fff';
+                    ctx.beginPath();
+                    ctx.arc(bx+bw/2,boss.y+24,eyeR*0.4,0,Math.PI*2);
                     ctx.fill();
                     ctx.fillStyle='#000';
                     ctx.beginPath();
-                    ctx.arc(bx+boss.w/2,boss.y+boss.h/2,8,0,Math.PI*2);
+                    ctx.arc(bx+bw/2,boss.y+24,eyeR*0.2,0,Math.PI*2);
                     ctx.fill();
+                    // Gun barrels on sides
+                    ctx.fillStyle='#555';
+                    ctx.fillRect(bx-8,boss.y+30,10,5);
+                    ctx.fillRect(bx-10,boss.y+28,12,3);
+                    ctx.fillRect(bx+bw-2,boss.y+30,10,5);
+                    ctx.fillRect(bx+bw-2,boss.y+28,12,3);
+                    // Lower legs/mecha treads
+                    ctx.fillStyle='#444';
+                    ctx.fillRect(bx+4,boss.y+bh-4,10,6);
+                    ctx.fillRect(bx+bw-14,boss.y+bh-4,10,6);
+                    ctx.fillStyle='#555';
+                    ctx.fillRect(bx+2,boss.y+bh-2,14,4);
+                    ctx.fillRect(bx+bw-16,boss.y+bh-2,14,4);
                     // HP bar
                     ctx.fillStyle='#333';
                     ctx.fillRect(bx,boss.y-15,boss.w,10);
@@ -4140,40 +4226,67 @@ function startPoker(container, W, H) {
                     ctx.fillRect(bx,boss.y-15,boss.w*hpPct,10);
                 }
 
-                // Player
+                // Player (Bill Rizer style)
                 if(!gameOver){
                     let px=player.x-cx;
                     let py=player.y;
                     if(invincible<=0||Math.floor(Date.now()/80)%2===0){
-                        let useChar=imgChar.complete&&imgChar.naturalWidth>0;
-                        if(useChar){
-                            ctx.save();
-                            ctx.translate(px+player.w/2,py+player.h/2);
-                            ctx.scale(player.facing,1);
-                            ctx.drawImage(imgChar,-player.w/2-4,-player.h/2-4,player.w+10,player.h+10);
-                            ctx.restore();
-                        } else {
-                            ctx.save();
-                            ctx.translate(px+player.w/2,py+player.h/2);
-                            ctx.scale(player.facing,1);
+                        ctx.save();
+                        ctx.translate(px+player.w/2,py+player.h/2);
+                        ctx.scale(player.facing,1);
+                        let w=player.w,h=player.h;
+                        // Legs - dark pants with boots
+                        let legAnim=Math.sin(player.frame*Math.PI*0.5)*4;
+                        ctx.fillStyle='#3a3a3a';
+                        ctx.fillRect(-w/2+2,h/2-12,5,8+legAnim);
+                        ctx.fillRect(w/2-7,h/2-12,5,8-legAnim);
+                        ctx.fillStyle='#5a3a1a';
+                        ctx.fillRect(-w/2+1,h/2-4,7,4+legAnim);
+                        ctx.fillRect(w/2-8,h/2-4,7,4-legAnim);
+                        // Body - blue vest over dark undershirt
+                        ctx.fillStyle='#1a1a2a';
+                        ctx.fillRect(-w/2+3,-h/2+10,w-6,h/2-2);
+                        ctx.fillStyle='#2266cc';
+                        ctx.fillRect(-w/2+3,-h/2+12,w-6,h/2-8);
+                        ctx.fillStyle='#1a4a99';
+                        ctx.fillRect(-w/2+3,-h/2+12,w-6,3);
+                        // Vest opening at chest (skin)
+                        ctx.fillStyle='#e8c49a';
+                        ctx.fillRect(-2,-h/2+14,4,6);
+                        // Arms
+                        ctx.fillStyle='#2266cc';
+                        if(shooting||shootTimer>0){
+                            // Gun arm extended
+                            ctx.fillStyle='#e8c49a';
+                            ctx.fillRect(0,-h/2+14,14,5);
+                            ctx.fillStyle='#555';
+                            ctx.fillRect(10,-h/2+13,10,4);
+                            ctx.fillStyle='#777';
+                            ctx.fillRect(12,-h/2+12,3,6);
+                            // Other arm
                             ctx.fillStyle='#2266cc';
-                            ctx.fillRect(-player.w/2+2,-player.h/2+8,player.w-4,player.h-12);
-                            ctx.fillStyle='#ffcc88';
-                            ctx.fillRect(-5,-player.h/2,12,12);
-                            ctx.fillStyle='#cc0000';
-                            ctx.fillRect(-5,-player.h/2+3,12,3);
-                            if(shooting||shootTimer>0){
-                                ctx.fillStyle='#ffcc88';
-                                ctx.fillRect(4,-2,10,4);
-                                ctx.fillStyle='#555';
-                                ctx.fillRect(12,-3,8,4);
-                            }
-                            let legAnim=Math.sin(player.frame*Math.PI*0.5)*5;
-                            ctx.fillStyle='#333';
-                            ctx.fillRect(-4,player.h/2-8,4,8+legAnim);
-                            ctx.fillRect(2,player.h/2-8,4,8-legAnim);
-                            ctx.restore();
+                            ctx.fillRect(-w/2-2,-h/2+14,5,4);
+                            ctx.fillStyle='#e8c49a';
+                            ctx.fillRect(-w/2-3,-h/2+14,4,3);
+                        } else {
+                            ctx.fillStyle='#2266cc';
+                            ctx.fillRect(-w/2-2,-h/2+14,6,4);
+                            ctx.fillRect(w/2-4,-h/2+14,6,4);
+                            ctx.fillStyle='#e8c49a';
+                            ctx.fillRect(-w/2-3,-h/2+14,4,3);
+                            ctx.fillRect(w/2-1,-h/2+14,4,3);
                         }
+                        // Head
+                        ctx.fillStyle='#e8c49a';
+                        ctx.fillRect(-6,-h/2,12,12);
+                        ctx.fillStyle='#6a3a1a';
+                        ctx.fillRect(-5,-h/2,10,4);
+                        // Red headband
+                        ctx.fillStyle='#cc0000';
+                        ctx.fillRect(-6,-h/2+3,12,3);
+                        ctx.fillRect(-8,-h/2+3,3,3);
+                        ctx.fillRect(5,-h/2+3,3,3);
+                        ctx.restore();
                     }
                 }
 

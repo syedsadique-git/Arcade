@@ -3623,7 +3623,7 @@ function startPoker(container, W, H) {
             canvas.setAttribute('tabindex','0');
             canvas.focus();
 
-            const GRAVITY=0.55, JUMP_FORCE=-11, MOVE_SPEED=4, BULLET_SPEED=10, ENEMY_BULLET_SPEED=5;
+            const GRAVITY=0.55, JUMP_FORCE=-11, MOVE_SPEED=4, BULLET_SPEED=12, ENEMY_BULLET_SPEED=5;
             let alive=true, raf=null, lastTs=0;
             let score=0, lives=3, level=1, distance=0, gameOver=false;
             let scrollX=0, cameraX=0;
@@ -3636,6 +3636,17 @@ function startPoker(container, W, H) {
             const GAME_KEYS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','A','d','D','w','W','x','X','z','Z',' '];
             function sfxEnemyDie(){beep(300,0.08,'sawtooth',0.08);setTimeout(()=>beep(200,0.1,'sawtooth',0.06),60);}
             function sfxPlayerDie(){for(let i=0;i<10;i++)setTimeout(()=>beep(500-i*40,0.06,'sawtooth',0.15),i*60);}
+            function sfxShoot(){beep(880,0.03,'square',0.05);}
+            function sfxJump(){beep(440,0.05,'square',0.06);setTimeout(()=>beep(660,0.03,'square',0.04),40);}
+            function sfxHit(){beep(200,0.08,'sawtooth',0.1);}
+
+            let imgChar=new Image();imgChar.crossOrigin='anonymous';imgChar.src='https://opengameart.org/sites/default/files/contra_style_character_gif.gif';
+            let imgVillain=new Image();imgVillain.crossOrigin='anonymous';imgVillain.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUrfJ6iXxYTLqIMKohgEAYIoHJvDC5T2DbqA&s';
+            let imgTerrain=new Image();imgTerrain.crossOrigin='anonymous';imgTerrain.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQrivDTh5XDr7EK_L_KljUusH2v6R8s8Sqh3g&s';
+            let imgBlock=new Image();imgBlock.crossOrigin='anonymous';imgBlock.src='https://static.vecteezy.com/system/resources/previews/053/560/849/non_2x/stone-game-assets-with-lianas-and-leaves-creating-a-jungle-or-forest-atmosphere-for-2d-platformers-or-other-game-projects-free-vector.jpg';
+            let imgLoadCount=0, imgTotal=4;
+            function imgLoaded(){imgLoadCount++;}
+            imgChar.onload=imgLoaded;imgVillain.onload=imgLoaded;imgTerrain.onload=imgLoaded;imgBlock.onload=imgLoaded;
 
             let _kd=function(e){keys[e.key]=true;if(GAME_KEYS.includes(e.key))e.preventDefault();};
             let _ku=function(e){keys[e.key]=false;if(GAME_KEYS.includes(e.key))e.preventDefault();};
@@ -3735,20 +3746,20 @@ function startPoker(container, W, H) {
                 switch(weapon){
                     case'spread':
                         for(let a=-0.3;a<=0.3;a+=0.15){
-                            bullets.push({x:bx,y:by,vx:Math.cos(a)*BULLET_SPEED*dir,vy:Math.sin(a)*BULLET_SPEED,w:5,h:3,damage:1,color:'#ff4400',life:60});
+                            bullets.push({x:bx,y:by,vx:Math.cos(a)*BULLET_SPEED*dir,vy:Math.sin(a)*BULLET_SPEED,w:5,h:3,damage:1,color:'#ff4400',life:90});
                         }
                         shootTimer=10;
                         break;
                     case'laser':
-                        bullets.push({x:bx,y:by,vx:BULLET_SPEED*1.5*dir,vy:0,w:20,h:3,damage:3,color:'#00ffff',life:40});
+                        bullets.push({x:bx,y:by,vx:BULLET_SPEED*1.5*dir,vy:0,w:20,h:3,damage:3,color:'#00ffff',life:60});
                         shootTimer=20;
                         break;
                     case'machine':
-                        bullets.push({x:bx,y:by+(Math.random()-0.3)*4,vx:BULLET_SPEED*dir,vy:(Math.random()-0.5)*0.5,w:5,h:2,damage:1,color:'#ffff00',life:50});
+                        bullets.push({x:bx,y:by+(Math.random()-0.3)*4,vx:BULLET_SPEED*dir,vy:(Math.random()-0.5)*0.5,w:5,h:2,damage:1,color:'#ffff00',life:80});
                         shootTimer=4;
                         break;
                     default:
-                        bullets.push({x:bx,y:by,vx:BULLET_SPEED*dir,vy:0,w:8,h:3,damage:1,color:'#ffffff',life:50});
+                        bullets.push({x:bx,y:by,vx:BULLET_SPEED*dir,vy:0,w:8,h:3,damage:1,color:'#ffffff',life:80});
                         shootTimer=8;
                 }
                 sfxShoot();
@@ -3768,6 +3779,7 @@ function startPoker(container, W, H) {
                 if(invincible>0||gameOver)return;
                 lives--;
                 invincible=120;
+                sfxHit();
                 explosion(player.x+player.w/2,player.y+player.h/2,20,'#ff0000');
                 if(lives<=0){
                     gameOver=true;
@@ -3800,7 +3812,7 @@ function startPoker(container, W, H) {
                 else if(moveRight){player.vx=MOVE_SPEED;player.facing=1;}
                 else{player.vx*=0.7;}
 
-                if(jumpKey&&player.onGround){player.vy=JUMP_FORCE;player.onGround=false;}
+                if(jumpKey&&player.onGround){player.vy=JUMP_FORCE;player.onGround=false;sfxJump();}
                 if(!jumpKey&&player.vy<-3)player.vy*=0.85;
 
                 player.vy+=GRAVITY;
@@ -4031,19 +4043,25 @@ function startPoker(container, W, H) {
                 }
 
                 // Ground
-                ctx.fillStyle='#2a5a1a';
-                ctx.fillRect(0,groundY,W,H-groundY);
-                ctx.fillStyle='#1a3a0a';
-                ctx.fillRect(0,groundY,W,4);
+                if(imgTerrain.complete&&imgTerrain.naturalWidth>0){
+                    let pat=ctx.createPattern(imgTerrain,'repeat');
+                    ctx.fillStyle=pat;ctx.fillRect(0,groundY,W,H-groundY);
+                } else {
+                    ctx.fillStyle='#2a5a1a';ctx.fillRect(0,groundY,W,H-groundY);
+                    ctx.fillStyle='#1a3a0a';ctx.fillRect(0,groundY,W,4);
+                }
 
                 // Platforms
                 for(let p of platforms){
                     let px=p.x-cx;
                     if(px>-p.w-10&&px<W+10){
-                        ctx.fillStyle='#5a3a1a';
-                        ctx.fillRect(px,p.y,p.w,p.h);
-                        ctx.fillStyle='#7a5a2a';
-                        ctx.fillRect(px,p.y,p.w,3);
+                        if(imgBlock.complete&&imgBlock.naturalWidth>0){
+                            ctx.fillStyle=ctx.createPattern(imgBlock,'repeat');
+                            ctx.fillRect(px,p.y,p.w,p.h);
+                        } else {
+                            ctx.fillStyle='#5a3a1a';ctx.fillRect(px,p.y,p.w,p.h);
+                            ctx.fillStyle='#7a5a2a';ctx.fillRect(px,p.y,p.w,3);
+                        }
                     }
                 }
 
@@ -4051,43 +4069,41 @@ function startPoker(container, W, H) {
                 for(let e of enemies){
                     let ex=e.x-cx;
                     if(ex<-50||ex>W+50)continue;
+                    let useImg=imgVillain.complete&&imgVillain.naturalWidth>0;
                     if(e.behavior==='snake'){
-                        // Segmented snake body - trail behind head (to the right)
                         for(let s=3;s>=0;s--){
                             let sx=ex+e.w-s*6;
                             let sy=e.y+Math.sin((e.frame*2)+s*0.8)*5;
                             ctx.fillStyle=s===0?'#22aa44':s===1?'#1a9933':'#118822';
                             ctx.fillRect(sx,sy,e.w*0.6,e.h*0.8);
                         }
-                        // Head
-                        ctx.fillStyle='#0d6618';
-                        ctx.fillRect(ex+e.w*0.5,e.y-2,e.w*0.5,e.h+4);
-                        // Eyes
-                        ctx.fillStyle='#ff0';
-                        ctx.fillRect(ex+e.w-2,e.y+1,3,3);
-                        ctx.fillRect(ex+e.w-2,e.y+e.h-5,3,3);
-                        // Tongue
+                        if(useImg){
+                            ctx.drawImage(imgVillain,ex+e.w*0.5-8,e.y-4,e.w+10,e.h+8);
+                        } else {
+                            ctx.fillStyle='#0d6618';ctx.fillRect(ex+e.w*0.5,e.y-2,e.w*0.5,e.h+4);
+                            ctx.fillStyle='#ff0';ctx.fillRect(ex+e.w-2,e.y+1,3,3);
+                            ctx.fillRect(ex+e.w-2,e.y+e.h-5,3,3);
+                        }
                         ctx.fillStyle='#ff3333';
                         let tongue=Math.sin(e.frame*4)*3;
-                        ctx.fillRect(ex+e.w+1,e.y+e.h/2-1,4+ tongue,2);
+                        ctx.fillRect(ex+e.w+1,e.y+e.h/2-1,4+tongue,2);
                     } else if(e.behavior==='turret'){
-                        ctx.fillStyle=e.color;
-                        ctx.fillRect(ex,e.y,e.w,e.h);
-                        ctx.fillStyle='#666';
-                        ctx.fillRect(ex+e.w/2-3,e.y-8,6,8);
+                        if(useImg){
+                            ctx.drawImage(imgVillain,ex-4,e.y-4,e.w+10,e.h+10);
+                        } else {
+                            ctx.fillStyle=e.color;ctx.fillRect(ex,e.y,e.w,e.h);
+                        }
+                        ctx.fillStyle='#666';ctx.fillRect(ex+e.w/2-3,e.y-8,6,8);
                     } else {
-                        // Body
-                        ctx.fillStyle=e.color;
-                        ctx.fillRect(ex+2,e.y+4,e.w-4,e.h-4);
-                        // Head
-                        ctx.fillStyle='#ddd';
-                        ctx.beginPath();
-                        ctx.arc(ex+e.w/2,e.y+6,6,0,Math.PI*2);
-                        ctx.fill();
-                        // Eyes
-                        ctx.fillStyle='#f00';
-                        ctx.fillRect(ex+e.w/2+(e.frame>0.5?1:-3),e.y+4,2,2);
-                        // Legs
+                        if(useImg){
+                            ctx.drawImage(imgVillain,ex-2,e.y-2,e.w+6,e.h+6);
+                        } else {
+                            ctx.fillStyle=e.color;ctx.fillRect(ex+2,e.y+4,e.w-4,e.h-4);
+                            ctx.fillStyle='#ddd';ctx.beginPath();
+                            ctx.arc(ex+e.w/2,e.y+6,6,0,Math.PI*2);ctx.fill();
+                            ctx.fillStyle='#f00';
+                            ctx.fillRect(ex+e.w/2+(e.frame>0.5?1:-3),e.y+4,2,2);
+                        }
                         ctx.fillStyle=e.color;
                         let legOff=Math.sin(e.frame*Math.PI)*4;
                         ctx.fillRect(ex+3,e.y+e.h-6,4,6+legOff);
@@ -4099,8 +4115,13 @@ function startPoker(container, W, H) {
                 if(boss&&bossActive){
                     let bx=boss.x-cx;
                     let hpPct=boss.hp/boss.maxHp;
-                    ctx.fillStyle=`rgb(${Math.floor(200+55*(1-hpPct))},${Math.floor(50*(1-hpPct))},0)`;
-                    ctx.fillRect(bx,boss.y,boss.w,boss.h);
+                    let useImg=imgVillain.complete&&imgVillain.naturalWidth>0;
+                    if(useImg){
+                        ctx.drawImage(imgVillain,bx-10,boss.y-10,boss.w+20,boss.h+20);
+                    } else {
+                        ctx.fillStyle=`rgb(${Math.floor(200+55*(1-hpPct))},${Math.floor(50*(1-hpPct))},0)`;
+                        ctx.fillRect(bx,boss.y,boss.w,boss.h);
+                    }
                     ctx.fillStyle='#ff0000';
                     ctx.fillRect(bx+10,boss.y+10,boss.w-20,20);
                     // Eye
@@ -4124,33 +4145,35 @@ function startPoker(container, W, H) {
                     let px=player.x-cx;
                     let py=player.y;
                     if(invincible<=0||Math.floor(Date.now()/80)%2===0){
-                        ctx.save();
-                        ctx.translate(px+player.w/2,py+player.h/2);
-                        ctx.scale(player.facing,1);
-
-                        // Body
-                        ctx.fillStyle='#2266cc';
-                        ctx.fillRect(-player.w/2+2,-player.h/2+8,player.w-4,player.h-12);
-                        // Head
-                        ctx.fillStyle='#ffcc88';
-                        ctx.fillRect(-5,-player.h/2,12,12);
-                        // Headband
-                        ctx.fillStyle='#cc0000';
-                        ctx.fillRect(-5,-player.h/2+3,12,3);
-                        // Arm with gun
-                        if(shooting||shootTimer>0){
+                        let useChar=imgChar.complete&&imgChar.naturalWidth>0;
+                        if(useChar){
+                            ctx.save();
+                            ctx.translate(px+player.w/2,py+player.h/2);
+                            ctx.scale(player.facing,1);
+                            ctx.drawImage(imgChar,-player.w/2-4,-player.h/2-4,player.w+10,player.h+10);
+                            ctx.restore();
+                        } else {
+                            ctx.save();
+                            ctx.translate(px+player.w/2,py+player.h/2);
+                            ctx.scale(player.facing,1);
+                            ctx.fillStyle='#2266cc';
+                            ctx.fillRect(-player.w/2+2,-player.h/2+8,player.w-4,player.h-12);
                             ctx.fillStyle='#ffcc88';
-                            ctx.fillRect(4,-2,10,4);
-                            ctx.fillStyle='#555';
-                            ctx.fillRect(12,-3,8,4);
+                            ctx.fillRect(-5,-player.h/2,12,12);
+                            ctx.fillStyle='#cc0000';
+                            ctx.fillRect(-5,-player.h/2+3,12,3);
+                            if(shooting||shootTimer>0){
+                                ctx.fillStyle='#ffcc88';
+                                ctx.fillRect(4,-2,10,4);
+                                ctx.fillStyle='#555';
+                                ctx.fillRect(12,-3,8,4);
+                            }
+                            let legAnim=Math.sin(player.frame*Math.PI*0.5)*5;
+                            ctx.fillStyle='#333';
+                            ctx.fillRect(-4,player.h/2-8,4,8+legAnim);
+                            ctx.fillRect(2,player.h/2-8,4,8-legAnim);
+                            ctx.restore();
                         }
-                        // Legs
-                        let legAnim=Math.sin(player.frame*Math.PI*0.5)*5;
-                        ctx.fillStyle='#333';
-                        ctx.fillRect(-4,player.h/2-8,4,8+legAnim);
-                        ctx.fillRect(2,player.h/2-8,4,8-legAnim);
-
-                        ctx.restore();
                     }
                 }
 

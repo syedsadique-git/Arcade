@@ -6721,23 +6721,28 @@ function startPoker(container, W, H) {
 
                 // Climbing
                 if((up||down)&&(onLadderTile||onLadderBelow||onLadderAbove)){
-                    player.climbing=true;
-                    player.vy=0;
+                    // Check if head is blocked before allowing climbing up
+                    let headBlocked=false;
                     if(up){
                         let hRow=Math.floor((player.y-1-OY)/TILE);
                         let hL=Math.floor((player.x+2-OX)/TILE),hR=Math.floor((player.x+PW-3-OX)/TILE);
-                        let blocked=false;
-                        for(let c=hL;c<=hR;c++){if(isSolid(c,hRow)){blocked=true;break;}}
-                        if(!blocked){player.y-=2;player.onGround=false;}
+                        for(let c=hL;c<=hR;c++){if(isSolid(c,hRow)){headBlocked=true;break;}}
                     }
-                    if(down){player.y+=2;player.onGround=false;}
-                    // Snap to ladder column
-                    let ladderCol=ct.col;
-                    if(isLadder(ct.col,ct.row)||isLadder(ct.col,ct.row+1))ladderCol=ct.col;
-                    else if(ct.col>0&&(isLadder(ct.col-1,ct.row)||isLadder(ct.col-1,ct.row+1)))ladderCol=ct.col-1;
-                    else if(ct.col<COLS-1&&(isLadder(ct.col+1,ct.row)||isLadder(ct.col+1,ct.row+1)))ladderCol=ct.col+1;
-                    let targetX=OX+ladderCol*TILE+TILE/2-PW/2;
-                    player.x+=Math.sign(targetX-player.x)*Math.min(Math.abs(targetX-player.x),2);
+                    if((down||(up&&!headBlocked))&&(onLadderTile||onLadderBelow||onLadderAbove)){
+                        player.climbing=true;
+                        player.vy=0;
+                        if(up){player.y-=2;player.onGround=false;}
+                        if(down){player.y+=2;player.onGround=false;}
+                        // Snap to ladder column
+                        let ladderCol=ct.col;
+                        if(isLadder(ct.col,ct.row)||isLadder(ct.col,ct.row+1))ladderCol=ct.col;
+                        else if(ct.col>0&&(isLadder(ct.col-1,ct.row)||isLadder(ct.col-1,ct.row+1)))ladderCol=ct.col-1;
+                        else if(ct.col<COLS-1&&(isLadder(ct.col+1,ct.row)||isLadder(ct.col+1,ct.row+1)))ladderCol=ct.col+1;
+                        let targetX=OX+ladderCol*TILE+TILE/2-PW/2;
+                        player.x+=Math.sign(targetX-player.x)*Math.min(Math.abs(targetX-player.x),2);
+                    } else {
+                        player.climbing=false;
+                    }
                 } else {
                     player.climbing=false;
                 }
@@ -6869,8 +6874,8 @@ function startPoker(container, W, H) {
                 // Hammer item
                 if(hammerItem){
                     hammerItem.y+=hammerItem.vy;hammerItem.vy+=0.1;
-                    if(hammerItem.y>OY+ROWS*TILE)hammerItem=null;
-                    if(!dead&&player.x<hammerItem.x+hammerItem.w&&player.x+player.w>hammerItem.x&&player.y<hammerItem.y+hammerItem.h&&player.y+player.h>hammerItem.y){
+                    if(hammerItem.y>OY+ROWS*TILE){hammerItem=null;}
+                    if(hammerItem&&!dead&&player.x<hammerItem.x+hammerItem.w&&player.x+player.w>hammerItem.x&&player.y<hammerItem.y+hammerItem.h&&player.y+player.h>hammerItem.y){
                         hammerActive=true;hammerTimer=300;hammerItem=null;sfxHammer();
                     }
                 }

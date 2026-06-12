@@ -801,6 +801,11 @@
                     <span class="game-item-name">RAIDEN</span>
                     <span class="game-item-tagline">Vertical shooter. Destroy enemy waves.</span>
                 </div>
+                <div class="game-item" data-game="magictiles" data-tagline="Tap the tiles. Feel the rhythm.">
+                    <span class="game-item-icon">🎹</span>
+                    <span class="game-item-name">MAGIC TILES</span>
+                    <span class="game-item-tagline">Tap the tiles. Feel the rhythm.</span>
+                </div>
             </div>
 
             <!-- Difficulty Selector -->
@@ -887,7 +892,8 @@
             prince:  { name: 'PRINCE OF PERSIA',        controls: '► Arrow Keys to Move/Run ► X to Jump ► Z to Draw/Swing Sword ► Reach the exit door' },
             tetris:  { name: 'TETRIS',                 controls: '► Arrow Keys to Move ► Up to Rotate ► Space to Hard Drop ► C to Hold ► Clear lines to score' },
             dk:      { name: 'DONKEY KONG',             controls: '► Arrow Keys to Move ► Up to Climb Ladders ► Space to Jump ► Dodge Barrels ► Save the Princess' },
-            raiden:  { name: 'RAIDEN',                  controls: '► Arrow Keys to Move ► Z or Space to Fire ► Collect Power-ups ► Destroy Enemy Waves ► Survive!' }
+            raiden:  { name: 'RAIDEN',                  controls: '► Arrow Keys to Move ► Z or Space to Fire ► Collect Power-ups ► Destroy Enemy Waves ► Survive!' },
+            magictiles: { name: 'MAGIC TILES',          controls: '► Tap or Click the black tiles in rhythm ► Follow the beat ► Score points for each correct tap' }
         };
 
         let currentGame = null;
@@ -1102,6 +1108,7 @@
             else if (gameKey === 'tetris')   startTetris(gameFrame, gameW, gameH);
             else if (gameKey === 'dk')       startDonkeyKong(gameFrame, gameW, gameH);
             else if (gameKey === 'raiden')   startRaiden(gameFrame, gameW, gameH);
+            else if (gameKey === 'magictiles') startMagicTiles(gameFrame, gameW, gameH);
             else if (gameKey === 'secret')   startSecret(gameFrame, gameW, gameH);
 
             // Re-inject fullscreen btn (since innerHTML was cleared)
@@ -5359,6 +5366,19 @@ function startPoker(container, W, H) {
                 running=false;
                 if(rafId)cancelAnimationFrame(rafId);
                 document.removeEventListener('keydown',handleKey);
+            };
+        }
+
+        // ===== MAGIC TILES =====
+        function startMagicTiles(container, W, H) {
+            const iframe = document.createElement('iframe');
+            iframe.src = 'https://h5.meegames.com/games/9608357915/magic-tiles-3/index.html';
+            iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+            iframe.setAttribute('allow', 'autoplay; fullscreen');
+            iframe.setAttribute('scrolling', 'no');
+            container.appendChild(iframe);
+            container._cleanup = function() {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             };
         }
 

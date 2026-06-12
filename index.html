@@ -893,7 +893,7 @@
             tetris:  { name: 'TETRIS',                 controls: '► Arrow Keys to Move ► Up to Rotate ► Space to Hard Drop ► C to Hold ► Clear lines to score' },
             dk:      { name: 'DONKEY KONG',             controls: '► Arrow Keys to Move ► Up to Climb Ladders ► Space to Jump ► Dodge Barrels ► Save the Princess' },
             raiden:  { name: 'RAIDEN',                  controls: '► Arrow Keys to Move ► Z or Space to Fire ► Collect Power-ups ► Destroy Enemy Waves ► Survive!' },
-            magictiles: { name: 'MAGIC TILES',          controls: '► Press W A S D to tap tiles in each column ► Hit the black tiles in rhythm ► Miss and it\'s game over!' }
+            magictiles: { name: 'MAGIC TILES',          controls: '► Click or tap the black tiles in rhythm ► Follow the beat ► Score points for each correct tap' }
         };
 
         let currentGame = null;
@@ -5369,214 +5369,16 @@ function startPoker(container, W, H) {
             };
         }
 
-        // ===== MAGIC TILES (Piano Tiles) =====
+        // ===== MAGIC TILES =====
         function startMagicTiles(container, W, H) {
-            const COLS = 4;
-            const canvas = document.createElement('canvas');
-            canvas.width = W; canvas.height = H;
-            canvas.style.cssText = 'display:block;margin:auto;background:#1a1a2e;width:100%;height:100%;object-fit:contain;cursor:pointer;';
-            container.appendChild(canvas);
-            const ctx = canvas.getContext('2d');
-
-            const BW = Math.min(W * 0.8, 400);
-            const OX = (W - BW) / 2;
-            const COL_W = BW / COLS;
-            const TAP_Y = H - 80;
-            const TILE_H = 80;
-
-            let tiles = [];
-            let score = 0;
-            let speed = 3;
-            let baseSpeed = 3;
-            let gameOver = false;
-            let alive = true;
-            let raf = null;
-            let lastTs = 0;
-            let spawnAcc = 0;
-            let spawnInt = 800;
-            let combo = 0;
-
-            function spawnRow() {
-                const col = Math.floor(Math.random() * COLS);
-                const row = Math.random() < 0.3 ? 2 : 1;
-                const cols = [];
-                for (let i = 0; i < row; i++) {
-                    let c;
-                    do { c = Math.floor(Math.random() * COLS); } while (cols.includes(c));
-                    cols.push(c);
-                }
-                for (const c of cols) {
-                    tiles.push({ col: c, y: -TILE_H * (cols.indexOf(c) + 1), hit: false });
-                }
-            }
-
-            function getTapCol(mx) {
-                const x = mx - OX;
-                if (x < 0 || x >= BW) return -1;
-                return Math.floor(x / COL_W);
-            }
-
-            function handleTap(col) {
-                if (gameOver || col < 0 || col >= COLS) return;
-                let found = false;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const t = tiles[i];
-                    if (t.col === col && !t.hit && t.y + TILE_H >= TAP_Y - 10 && t.y <= TAP_Y + 10) {
-                        t.hit = true;
-                        score++;
-                        combo++;
-                        found = true;
-                        if (combo % 5 === 0 && speed < 10) speed += 0.3;
-                        break;
-                    }
-                }
-                if (!found) { gameOver = true; combo = 0; }
-            }
-
-            function update(dt) {
-                if (gameOver || !alive) return;
-                spawnAcc += dt;
-                while (spawnAcc >= spawnInt) {
-                    spawnAcc -= spawnInt;
-                    spawnRow();
-                    spawnInt = Math.max(300, spawnInt - 2);
-                }
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    tiles[i].y += speed * (dt / 16);
-                    if (tiles[i].y > H + 50) {
-                        if (!tiles[i].hit) gameOver = true;
-                        tiles.splice(i, 1);
-                    }
-                }
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, W, H);
-
-                // Board
-                ctx.fillStyle = '#0f0f23';
-                ctx.fillRect(OX, 0, BW, H);
-                ctx.strokeStyle = '#00f5ff';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(OX, 0, BW, H);
-
-                // Column lines
-                for (let i = 1; i < COLS; i++) {
-                    const x = OX + i * COL_W;
-                    ctx.strokeStyle = 'rgba(0,245,255,0.2)';
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, H);
-                    ctx.stroke();
-                }
-
-                // Tap line
-                ctx.strokeStyle = '#ff4444';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(OX, TAP_Y);
-                ctx.lineTo(OX + BW, TAP_Y);
-                ctx.stroke();
-                ctx.fillStyle = '#ff4444';
-                ctx.font = '16px "Press Start 2P",monospace';
-                ctx.textAlign = 'right';
-                ctx.fillText('▼', OX - 10, TAP_Y + 6);
-
-                // Tiles
-                for (const t of tiles) {
-                    const x = OX + t.col * COL_W;
-                    const grad = ctx.createLinearGradient(x, t.y, x + COL_W, t.y + TILE_H);
-                    if (t.hit) {
-                        grad.addColorStop(0, '#555');
-                        grad.addColorStop(1, '#333');
-                    } else {
-                        grad.addColorStop(0, '#222');
-                        grad.addColorStop(1, '#000');
-                    }
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(x, t.y, COL_W - 2, TILE_H - 2);
-                    if (!t.hit) {
-                        ctx.strokeStyle = '#444';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x, t.y, COL_W - 2, TILE_H - 2);
-                    }
-                }
-
-                // Score
-                ctx.fillStyle = '#fff';
-                ctx.font = '20px "Press Start 2P",monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('SCORE: ' + score, W / 2, 30);
-
-                // Speed indicator
-                ctx.fillStyle = '#0f5';
-                ctx.font = '12px "Press Start 2P",monospace';
-                ctx.textAlign = 'right';
-                ctx.fillText('SPD: ' + speed.toFixed(1), W - 20, 30);
-
-                // Column key hints
-                ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                ctx.font = '14px "Press Start 2P",monospace';
-                ctx.textAlign = 'center';
-                for (let i = 0; i < COLS; i++) {
-                    ctx.fillText(['W','A','S','D'][i], OX + i * COL_W + COL_W / 2, H - 15);
-                }
-
-                if (gameOver) {
-                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                    ctx.fillRect(0, 0, W, H);
-                    ctx.fillStyle = '#ff4444';
-                    ctx.font = '30px "Press Start 2P",monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('GAME OVER', W / 2, H / 2 - 20);
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '16px "Press Start 2P",monospace';
-                    ctx.fillText('SCORE: ' + score, W / 2, H / 2 + 30);
-                    ctx.fillStyle = '#0f5';
-                    ctx.font = '12px "Press Start 2P",monospace';
-                    ctx.fillText('Click to Restart', W / 2, H / 2 + 70);
-                }
-            }
-
-            function restart() {
-                tiles = [];
-                score = 0;
-                speed = baseSpeed;
-                spawnAcc = 0;
-                spawnInt = 800;
-                combo = 0;
-                gameOver = false;
-            }
-
-            const keysMap = { 'w': 0, 'a': 1, 's': 2, 'd': 3 };
-            const _kd = (e) => {
-                const k = e.key.toLowerCase();
-                if (k in keysMap) { e.preventDefault(); if (gameOver) { restart(); return; } handleTap(keysMap[k]); }
-            };
-            document.addEventListener('keydown', _kd);
-
-            canvas.addEventListener('click', (e) => {
-                if (gameOver) { restart(); return; }
-                const rect = canvas.getBoundingClientRect();
-                const sx = (e.clientX - rect.left) / rect.width * W;
-                handleTap(getTapCol(sx));
-            });
-
-            function loop(ts) {
-                if (!alive) return;
-                if (lastTs === 0) lastTs = ts;
-                const dt = Math.min(ts - lastTs, 50);
-                lastTs = ts;
-                update(dt);
-                draw();
-                raf = requestAnimationFrame(loop);
-            }
-            raf = requestAnimationFrame(loop);
-
+            const iframe = document.createElement('iframe');
+            iframe.src = 'https://h5.meegames.com/games/9608357915/magic-tiles-3/index.html';
+            iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+            iframe.setAttribute('allow', 'autoplay; fullscreen');
+            iframe.setAttribute('scrolling', 'no');
+            container.appendChild(iframe);
             container._cleanup = function() {
-                alive = false;
-                if (raf) cancelAnimationFrame(raf);
-                document.removeEventListener('keydown', _kd);
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             };
         }
 

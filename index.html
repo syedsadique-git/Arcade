@@ -6604,7 +6604,7 @@ function startPoker(container, W, H) {
             const TITLE_COLOR='#ff8800';
 
             const LEVELS=[[
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0],
@@ -6619,7 +6619,7 @@ function startPoker(container, W, H) {
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
             ],[
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,0,0,1],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0],
@@ -6634,7 +6634,7 @@ function startPoker(container, W, H) {
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
             ],[
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0],
@@ -6732,6 +6732,7 @@ function startPoker(container, W, H) {
                         player.climbing=true;
                         player.vy=0;
                         if(up){player.y-=2;player.onGround=false;}
+                        if(up&&player.y<=OY-PH){player.y=OY-PH;player.climbing=false;player.onGround=true;player.vy=0;}
                         if(down){player.y+=2;player.onGround=false;}
                         // Snap to ladder column
                         let ladderCol=ct.col;
@@ -6882,7 +6883,7 @@ function startPoker(container, W, H) {
                 if(hammerTimer>0){hammerTimer--;if(hammerTimer<=0)hammerActive=false;}
 
                 // Check win - reached princess row
-                if(!won&&!stageClearTimer&&Math.abs(player.y+player.h/2-(OY+PRINCESS_ROW*TILE+TILE/2))<TILE*0.8&&Math.abs(player.x+player.w/2-(OX+PRINCESS_COL*TILE+TILE/2))<TILE*0.8){
+                if(!won&&!stageClearTimer&&Math.abs(player.y+player.h/2-(OY+PRINCESS_ROW*TILE+TILE/2))<TILE*1.5&&Math.abs(player.x+player.w/2-(OX+PRINCESS_COL*TILE+TILE/2))<TILE*0.8){
                     won=true;score+=1000;
                 }
 

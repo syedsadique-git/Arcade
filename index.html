@@ -6716,9 +6716,10 @@ function startPoker(container, W, H) {
                 let ft=playerFeetTile(),ct=playerCenterTile();
                 let onLadderTile=isLadder(ct.col,ct.row)||isLadder(ct.col,ct.row+1);
                 let onLadderBelow=isLadder(ft.col,ft.row+1);
+                let onLadderAbove=isLadder(ft.col,ft.row-1);
 
                 // Climbing
-                if((up||down)&&(onLadderTile||onLadderBelow)){
+                if((up||down)&&(onLadderTile||onLadderBelow||onLadderAbove)){
                     player.climbing=true;
                     player.vy=0;
                     if(up){

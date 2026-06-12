@@ -5818,11 +5818,13 @@ function startPoker(container, W, H) {
                     player.onGround=false;
                 } else {
                     if(player.vy>0){
-                        player.y=tileBottom(player.y)*TILE-player.h;
+                        let landRow=Math.floor((ny+player.h-1)/TILE);
+                        player.y=landRow*TILE-player.h;
                         if(player.y<0)player.y=0;
                         player.onGround=true;
                     } else if(player.vy<0){
-                        player.y=(tileTop(player.y)+1)*TILE;
+                        let hitRow=Math.floor(ny/TILE);
+                        player.y=(hitRow+1)*TILE;
                     }
                     player.vy=0;
                 }

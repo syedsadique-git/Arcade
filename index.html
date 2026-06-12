@@ -6513,7 +6513,7 @@ function startPoker(container, W, H) {
                 player={x:sx,y:sy,w:PW,h:PH,vx:0,vy:0,onGround:false,facing:1,climbing:false};
                 barrels=[];particles=[];hammerItem=null;hammerTimer=0;hammerActive=false;
                 dead=false;deathTimer=0;stageClearTimer=0;barrelTimer=0;
-                barrelInt=Math.max(60,120-n*15);
+                barrelInt=Math.max(120,240-n*30);
             }
 
             function isSolid(col,row){
@@ -6554,7 +6554,7 @@ function startPoker(container, W, H) {
                 // Timer-based barrel spawn
                 if(!hammerActive){
                     barrelTimer++;
-                    if(barrelTimer>=barrelInt){
+                    if(barrelTimer>=barrelInt&&barrels.length<3){
                         barrelTimer=0;
                         spawnBarrel(DK_COL);
                     }

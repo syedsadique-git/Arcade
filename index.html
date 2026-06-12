@@ -5813,6 +5813,7 @@ function startPoker(container, W, H) {
                 guards=ld.guards.map(g=>({...g,x:g.x*TILE,y:g.y*TILE,w:28,h:40,dir:g.dir||-1,range:g.range||3,hp:g.hp||2,alive:true,state:'idle',animFrame:0,vy:0}));
                 particles=[];
                 dead=false;deathTimer=0;
+                swordOut=false;swordFrame=0;swordHit=false;
                 gameOver=false;won=false;
                 cameraX=0;
                 hitFlash=0;

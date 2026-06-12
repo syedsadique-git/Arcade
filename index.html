@@ -5801,10 +5801,10 @@ function startPoker(container, W, H) {
                 currentLevel=lvl;
                 let ld=levels[lvl];
                 player={
-                    x:ld.start.x*TILE,y:ld.start.y*TILE,
+                    x:ld.start.x*TILE,y:ld.start.y*TILE+1,
                     w:28,h:40,
                     vx:0,vy:0,
-                    onGround:false,facing:1,
+                    onGround:true,facing:1,
                     state:'idle',
                     hp:3,invincible:0,
                     attacking:false,
@@ -5845,6 +5845,16 @@ function startPoker(container, W, H) {
                 let tl=tileLeft(px),tr=tileRight(px);
                 let tt=tileTop(py),tb=tileBottom(py);
                 for(let ty=tt;ty<=tb;ty++){
+                    for(let tx=tl;tx<=tr;tx++){
+                        if(isSolid(tx,ty))return true;
+                    }
+                }
+                return false;
+            }
+            function collidesWall(px,py){
+                let tl=tileLeft(px),tr=tileRight(px);
+                let tt=tileTop(py),tb=tileBottom(py);
+                for(let ty=tt;ty<tb;ty++){
                     for(let tx=tl;tx<=tr;tx++){
                         if(isSolid(tx,ty))return true;
                     }
@@ -5917,7 +5927,7 @@ function startPoker(container, W, H) {
                 if(player.vy>12)player.vy=12;
 
                 let nx=player.x+player.vx;
-                if(!collidesWorld(nx,player.y)){
+                if(!collidesWall(nx,player.y)){
                     player.x=nx;
                 } else {
                     if(player.vx>0)player.x=tileRight(player.x)*TILE-player.w;
@@ -5932,7 +5942,7 @@ function startPoker(container, W, H) {
                 } else {
                     if(player.vy>0){
                         let landRow=Math.floor((ny+player.h-1)/TILE);
-                        player.y=landRow*TILE-player.h;
+                        player.y=landRow*TILE-player.h+1;
                         if(player.y<0)player.y=0;
                         player.onGround=true;
                     } else if(player.vy<0){

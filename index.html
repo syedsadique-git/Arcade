@@ -892,6 +892,8 @@
 
         let currentGame = null;
         let soundEnabled = true;
+        let stopCurrentBgMusic = null;
+        let startCurrentBgMusic = null;
         let scores = {};
         let konamiCode = [];
         let secretUnlocked = false;
@@ -1066,6 +1068,8 @@
                 gameFrame._cleanup();
                 gameFrame._cleanup = null;
             }
+            stopCurrentBgMusic = null;
+            startCurrentBgMusic = null;
             
             const game = GAMES[gameKey];
             if (!game) return;
@@ -3030,6 +3034,7 @@ function startPoker(container, W, H) {
             function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
             function resumeAudio(){if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}
             function playTone(freq,dur,type,vol){
+                if(!soundEnabled)return;
                 initAudio();resumeAudio();
                 let o=audioCtx.createOscillator(),g=audioCtx.createGain();
                 o.type=type||'sine';o.frequency.value=freq;
@@ -3038,6 +3043,7 @@ function startPoker(container, W, H) {
                 o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur);
             }
             function playNoise(dur,vol){
+                if(!soundEnabled)return;
                 initAudio();resumeAudio();
                 let b=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate);
                 let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;
@@ -3059,7 +3065,7 @@ function startPoker(container, W, H) {
             // Background music - chiptune loop
             let bgPlaying=false,bgTimer=null;
             function startBG(){
-                if(bgPlaying)return;initAudio();resumeAudio();bgPlaying=true;
+                if(bgPlaying)return;if(!soundEnabled)return;initAudio();resumeAudio();bgPlaying=true;
                 let mel=[[659,.12],[659,.12],[0,.06],[659,.12],[0,.06],[523,.12],[659,.12],[0,.06],[784,.24],[0,.12],[392,.24],[0,.12],
                     [523,.18],[0,.06],[392,.18],[0,.06],[330,.18],[0,.06],[440,.12],[0,.06],[494,.12],[0,.06],[466,.12],[440,.12],
                     [0,.06],[392,.1],[659,.1],[784,.12],[880,.12],[0,.06],[698,.12],[784,.12],[0,.06],[659,.12],[0,.06],
@@ -3080,6 +3086,8 @@ function startPoker(container, W, H) {
                 }pn();
             }
             function stopBG(){bgPlaying=false;if(bgTimer){clearTimeout(bgTimer);bgTimer=null;}}
+            stopCurrentBgMusic = stopBG;
+            startCurrentBgMusic = startBG;
 
             // ===== Game State =====
             let hands=[[],[],[],[]],scores=[0,0,0,0],roundScores=[0,0,0,0];
@@ -3604,7 +3612,7 @@ function startPoker(container, W, H) {
             });
 
             canvas.setAttribute('tabindex','0');canvas.focus();
-            container._cleanup=function(){stopBG();audioCtx=null;alive=false;if(heartRaf){cancelAnimationFrame(heartRaf);heartRaf=null;}};
+            container._cleanup=function(){stopBG();stopCurrentBgMusic=null;startCurrentBgMusic=null;audioCtx=null;alive=false;if(heartRaf){cancelAnimationFrame(heartRaf);heartRaf=null;}};
 
             phase='choosing';passDir=0;passSelection=[];
             msg='Choose pass direction';msg2='';
@@ -3634,11 +3642,11 @@ function startPoker(container, W, H) {
             let invincible=0;
             let keys={};
             const GAME_KEYS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','A','d','D','w','W','x','X','z','Z',' '];
-            function sfxEnemyDie(){beep(300,0.08,'sawtooth',0.08);setTimeout(()=>beep(200,0.1,'sawtooth',0.06),60);}
-            function sfxPlayerDie(){for(let i=0;i<10;i++)setTimeout(()=>beep(500-i*40,0.06,'sawtooth',0.15),i*60);}
-            function sfxShoot(){beep(880,0.03,'square',0.05);}
-            function sfxJump(){beep(440,0.05,'square',0.06);setTimeout(()=>beep(660,0.03,'square',0.04),40);}
-            function sfxHit(){beep(200,0.08,'sawtooth',0.1);}
+            function sfxEnemyDie(){if(!soundEnabled)return;beep(300,0.08,'sawtooth',0.08);setTimeout(()=>beep(200,0.1,'sawtooth',0.06),60);}
+            function sfxPlayerDie(){if(!soundEnabled)return;for(let i=0;i<10;i++)setTimeout(()=>beep(500-i*40,0.06,'sawtooth',0.15),i*60);}
+            function sfxShoot(){if(!soundEnabled)return;beep(880,0.03,'square',0.05);}
+            function sfxJump(){if(!soundEnabled)return;beep(440,0.05,'square',0.06);setTimeout(()=>beep(660,0.03,'square',0.04),40);}
+            function sfxHit(){if(!soundEnabled)return;beep(200,0.08,'sawtooth',0.1);}
 
             let imgChar=new Image();imgChar.crossOrigin='anonymous';imgChar.src='https://opengameart.org/sites/default/files/contra_style_character_gif.gif';
             let imgVillain=new Image();imgVillain.crossOrigin='anonymous';imgVillain.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUrfJ6iXxYTLqIMKohgEAYIoHJvDC5T2DbqA&s';
@@ -5559,8 +5567,10 @@ function startPoker(container, W, H) {
             e.target.classList.toggle('muted');
             if (!soundEnabled) {
                 stopBgMusic();
+                if (stopCurrentBgMusic) stopCurrentBgMusic();
             } else if (currentGame) {
                 switchBgMusic(currentGame);
+                if (startCurrentBgMusic) startCurrentBgMusic();
             }
         });
 
@@ -6280,6 +6290,7 @@ function startPoker(container, W, H) {
             let actx=null;
             function initAudio(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();}
             function sfx(freq,dur,type,vol){
+                if(!soundEnabled)return;
                 initAudio();
                 let o=actx.createOscillator(),g=actx.createGain();
                 o.type=type||'square';o.frequency.value=freq;
@@ -6288,6 +6299,7 @@ function startPoker(container, W, H) {
                 o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur);
             }
             function sfxNoise(dur,vol){
+                if(!soundEnabled)return;
                 initAudio();
                 let b=actx.createBuffer(1,Math.max(1,actx.sampleRate*dur),actx.sampleRate);
                 let d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;

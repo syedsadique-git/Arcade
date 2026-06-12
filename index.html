@@ -6410,21 +6410,42 @@ function startPoker(container, W, H) {
             container.appendChild(canvas);
             const ctx=canvas.getContext('2d');
 
-            const BG_COLOR='#0d1120';
-            const PLATFORM_TOP='#c8b898';
-            const PLATFORM_FILL='#9a8a7a';
-            const PLATFORM_BOTTOM='#7a6a5a';
-            const PLATFORM_RIVET='#e0d4c4';
-            const LADDER_RUNG='#b8a888';
-            const LADDER_RAIL='#9a8a6a';
-            const OIL_DRUM_BODY='#888';
-            const OIL_DRUM_STRIPE='#aaa';
-            const OIL_FIRE_RED='#ff6644';
+            const BG_COLOR='#0a0a1a';
+            const PLATFORM_TOP='#d4c4a8';
+            const PLATFORM_FILL='#b8a88a';
+            const PLATFORM_BOTTOM='#8a7a5a';
+            const PLATFORM_RIVET='#e8dcc8';
+            const PLATFORM_DARK='#6a5a3a';
+            const LADDER_RUNG='#c8b898';
+            const LADDER_RAIL='#8a7a5a';
+            const OIL_DRUM_BODY='#777';
+            const OIL_DRUM_STRIPE='#bbb';
+            const OIL_DRUM_SHADOW='#555';
+            const OIL_FIRE_RED='#ff5544';
             const OIL_FIRE_YELLOW='#ffdd44';
+            const OIL_FIRE_ORANGE='#ff8822';
             const PRINCESS_SKIN='#ffddb8';
             const PRINCESS_DRESS='#ff88bb';
+            const PRINCESS_HAIR='#ffaa44';
             const PRINCESS_CROWN='#ffdd44';
             const PRINCESS_RIBBON='#ff3344';
+            const DK_FUR='#cc8833';
+            const DK_FUR_DARK='#995522';
+            const DK_BROWN='#663300';
+            const DK_BELT='#8a5a2a';
+            const PLAYER_SKIN='#ffcc88';
+            const PLAYER_SHIRT='#dd4444';
+            const PLAYER_PANTS='#2222cc';
+            const PLAYER_HAT='#dd4444';
+            const BARREL_WOOD='#cc6633';
+            const BARREL_DARK='#884422';
+            const BARREL_BAND='#995533';
+            const BARREL_FIRE='#ff5500';
+            const HUD_BG='#111';
+            const TEXT_GOLD='#ffcc44';
+            const TEXT_WHITE='#eee';
+            const TEXT_RED='#ff4444';
+            const TITLE_COLOR='#ff8800';
 
             const LEVELS=[[
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -6432,7 +6453,7 @@ function startPoker(container, W, H) {
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0],
-                [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -6447,7 +6468,7 @@ function startPoker(container, W, H) {
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0],
-                [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -6462,7 +6483,7 @@ function startPoker(container, W, H) {
                 [1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0],
-                [1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -6519,7 +6540,7 @@ function startPoker(container, W, H) {
             function sfxSmash(){beep(150,0.08,'sawtooth',0.1);}
 
             function update(){
-                if(gameOver||dead){if(dead){deathTimer--;if(deathTimer<=0){if(lives<=0){gameOver=true;dead=false;}else{initLevel(lvl);}}}return;}
+                if(gameOver||dead){if(dead){deathTimer--;if(deathTimer<=0){if(lives<=0){gameOver=true;dead=false;addScore('dk',score);}else{initLevel(lvl);}}}return;}
                 if(stageClearTimer>0){stageClearTimer--;if(stageClearTimer<=0){level++;if(level>=LEVELS.length)level=0;initLevel(level);}return;}
                 if(won){stageClearTimer=90;won=false;sfxWinDK();return;}
 
@@ -6654,10 +6675,11 @@ function startPoker(container, W, H) {
                         if(onPlat){
                             let bCol2=Math.floor((b.x+b.w/2-OX)/TILE);
                             let nextCol=b.vx>0?bCol2+1:bCol2-1;
-                            let pfRow=Math.floor((b.y+b.h-1-OY)/TILE)+1;
+                            let pfRow=Math.floor((b.y+b.h-OY)/TILE);
+                            let dropRow=pfRow+1;
                             // Check if barrel is at edge of platform
-                            let belowSolid=pfRow<ROWS&&(isSolid(nextCol,pfRow)||isLadder(nextCol,pfRow));
-                            if(pfRow<ROWS&&!belowSolid){
+                            let belowSolid=dropRow<ROWS&&(isSolid(nextCol,dropRow)||isLadder(nextCol,dropRow));
+                            if(dropRow<ROWS&&!belowSolid){
                                 b.vy=2;
                             }
                             // Check wall bounce
@@ -6780,7 +6802,7 @@ function startPoker(container, W, H) {
                 ctx.fillStyle='#ffcc44';ctx.font='bold '+Math.floor(TILE*0.28)+'px "Press Start 2P",monospace';ctx.textAlign='center';ctx.fillText('♥',prX,prY-4);
 
                 // Donkey Kong
-                let dkX=DK_COL*TILE+TILE/2,dkY=DK_ROW*TILE;
+                let dkX=DK_COL*TILE+TILE/2,dkY=DK_ROW*TILE+Math.sin(dkAnim)*2;
                 ctx.fillStyle='#dd8833';ctx.beginPath();ctx.arc(dkX,dkY+TILE*0.42,TILE*0.45,0,Math.PI*2);ctx.fill();
                 ctx.fillStyle='#cc7733';ctx.fillRect(dkX-TILE*0.25,dkY+TILE*0.65,TILE*0.5,TILE*0.4);
                 ctx.fillStyle='#663300';ctx.beginPath();ctx.arc(dkX-TILE*0.18,dkY+TILE*0.3,7,0,Math.PI*2);ctx.fill();
@@ -6882,9 +6904,11 @@ function startPoker(container, W, H) {
                 if(gameOver){
                     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
                     ctx.fillStyle='#ff4444';ctx.font='bold 24px "Press Start 2P",monospace';ctx.textAlign='center';
-                    ctx.fillText('GAME OVER',W/2,H/2-20);
+                    ctx.fillText('GAME OVER',W/2,H/2-30);
+                    ctx.fillStyle='#ffcc44';ctx.font='bold 16px "Press Start 2P",monospace';
+                    ctx.fillText('SCORE: '+score,W/2,H/2+5);
                     ctx.fillStyle='#fff';ctx.font='12px "Press Start 2P",monospace';
-                    ctx.fillText('Click to restart',W/2,H/2+20);
+                    ctx.fillText('Click to restart',W/2,H/2+30);
                 }
             }
 
